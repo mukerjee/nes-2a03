@@ -1,119 +1,57 @@
-class Noise:
-    def __init__(self):
-        self.LENGTH_COUNTER_TABLE = \
-            [10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26, 14,
-             12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30]
+#include "noise.h"
+#include "counter.h"
 
-        self.PERIOD_TABLE = \
-            [4, 8, 16, 32, 64, 96, 128, 160,
-             202, 254, 380, 508, 762, 1016, 2034, 4068]
-        
-        self.length_counter_disable_or_envelope_loop_flag = 1
-        self.envelope_disable = 1
-        self.volume_or_envelope_period = 0  # range is 0 - F
+void Noise::SetEnable(bool enabled) {
+    enabled_ = enabled;
+    if (!enabled_)
+        length_counter_.set_value(0);
+}
 
-        self.envelope_restart = 1
-        self.envelope_divider_counter = 0
-        self.envelope_counter = 0
-        
-        self.period_bitload = 0  # range is 0 - F
-        self.timer_counter = 0
-        
-        self.mode_flag = 0
-        self.shift_register_value = 1
+void Noise::Set400C(uint8_t b) {  //  len counter disable, env disable, volume
+    length_counter_.set_halt(b >> 5 & 1);
+    envelope_counter.set_loop(b >> 5 & 1);
+    envelope_counter_.set_halt(b >> 4 & 1);
+    envelope_divider_.set_reload(b & 15);
+    volume_ = b & 15;
+}
 
-        self.length_counter_bitload = 0  # range is 0 - 1F
-        self.length_counter_counter = 0
+void Noise::Set400E(uint8_t b) {  // mode, period
+    self.mode_flag = b >> 7;
+    timer_counter_.set_reload(kPeriodTable[b & 15]);
+}
 
-        self.shift_register_gate_open = 0
-        self.length_counter_gate_open = 0
+void Noise::Set400F(uint8_t b) {  // length counter bitload
+    if (enabled_)
+        length_counter.set_value(self.LENGTH_COUNTER_TABLE[b >> 3]);
+    envelope_counter_.enable_reload_flag(false);
+    envelope_divider_.enable_reload_flag(false);
+}
 
-        self.enabled = 1
+void Noise::EnvelopeClock() {  // called in quarter frames
+    if (envelope_counter_.reload_flag()) {
+        envelope_counter_.Clock();
+    }    
+    envelope_divider_.Clock();
+}
 
-    def set_400C(self, b):  # len counter disable, env disable, volume
-        b = b & 255  # only one byte
-        self.length_counter_disable_or_envelope_loop_flag = (b & 32) >> 5
-        self.envelope_disable = (b & 16) >> 4
-        self.volume_or_envelope_period = b & 15
+uint8_t Noise::GetCurrent() {
+    if (shift_register_.value() & 1 and length_counter_.value() > 0) {
+        if (envelope_counter_.halt())
+            return volume_;
+        else
+            return envelope_counter_.value();
+    } else
+        return 0;
+}
 
-    def set_400E(self, b):  # mode, period
-        b = b & 255  # only one byte
-        self.mode_flag = b & 128 >> 7
-        self.period_bitload = b & 15
-        self.timer_counter = self.PERIOD_TABLE[self.period_bitload]
+void Noise::ShiftRegisterClock() {  // called by timer
+    uint8_t extra_bit;
+    if (mode_flag_)
+        extra_bit = shift_register_ >> 6 & 1;
+    else
+        extra_bit = shift_register_ >> 1 & 1;
+    uint8_t feedback = (shift_register_ & 1) ^ extra_bit;
+    shift_register_ = self.shift_register_ >> 1;
+    shift_register_ += feedback << 14;
+}
 
-    def set_400F(self, b):  # length counter bitload
-        b = b & 255  # only one byte
-        self.length_counter_bitload = (b & 248) >> 3
-        if self.enabled:
-            self.length_counter_counter = \
-                self.LENGTH_COUNTER_TABLE[self.length_counter_bitload]
-        self.envelope_restart = 1
-        
-    def set_enabled(self, enabled):
-        self.enabled = enabled
-        if not self.enabled:
-            self.length_counter_counter = 0
-            self.length_counter_gate_open = 0
-
-    def get_length_counter(self):
-        return self.length_counter_counter != 0
-
-    def envelope_clock(self):  # called in quarter frames
-        if self.envelope_restart:
-            self.envelope_restart = 0
-            self.envelope_counter = 15
-            self.envelope_divider_counter = self.volume_or_envelope_period
-        else:
-            self.envelope_divider_counter -= 1
-            if self.envelope_divider_counter < 0:
-                self.envelope_divider_counter = self.volume_or_envelope_period
-                if self.envelope_counter:
-                    self.envelope_counter -= 1
-                elif self.length_counter_disable_or_envelope_loop_flag:
-                    self.envelope_counter = 15
-
-    def length_counter_clock(self):  # called in half frames
-        if not self.enabled:
-            self.length_counter_counter = 0
-            self.length_counter_gate_open = 0
-        if self.length_counter_disable_or_envelope_loop_flag:
-            self.length_counter_gate_open = 0
-        elif self.length_counter_counter:
-            self.length_counter_counter -= 1
-            if self.length_counter_counter == 0:
-                self.length_counter_gate_open = 0
-            else:
-                self.length_counter_gate_open = 1
-
-    def timer_clock(self):  # called every other CPU clock
-        self.timer_counter -= 1
-        if self.timer_counter < 0:
-            self.timer_counter = self.PERIOD_TABLE[self.period_bitload]
-            self.shift_register_clock()
-    
-    def shift_register_clock(self):  # called by timer
-        if self.mode_flag:
-            extra_bit = (self.shift_register_value & 64) >> 6
-        else:
-            extra_bit = (self.shift_register_value & 2) >> 1
-        feedback = (self.shift_register_value & 1) ^ extra_bit
-        self.shift_register_value = self.shift_register_value >> 1
-        self.shift_register_value += (feedback << 14)
-
-        if self.shift_register_value & 1 == 1:
-            self.shift_register_gate_open = 0
-        else:
-            self.shift_register_gate_open = 1
-
-    def get_envelope_volume(self):
-        if self.envelope_disable:
-            return self.volume_or_envelope_period
-        else:
-            return self.envelope_counter
-
-    def get_current(self):
-        if self.shift_register_gate_open and self.length_counter_gate_open:
-            return self.get_envelope_volume(self)
-        else:
-            return 0

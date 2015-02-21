@@ -1,24 +1,33 @@
-class DMC:
-    def __init__(self):
-        pass
+#include "dmc.h"
 
-    def set_4010(self, b):
-        pass
+DMC::DMC() {
 
-    def set_4011(self, b):
-        pass
-    
-    def set_4012(self, b):
-        pass
+}
 
-    def set_4013(self, b):
-        pass
-        
-    def set_enabled(self, enabled):
-        pass
+void DMC::SetEnabled(bool enabled) {
 
-    def timer_clock(self):
-        pass
+}
 
-    def get_current(self):
-        return 0
+void DMC::Set4010(uint8_t b) {
+
+}
+
+void DMC::Set4011(uint8_t b) {
+
+}
+
+void DMC::Set4012(uint8_t b) {
+
+}
+
+void DMC::Set4013(uint8_t b) {
+
+}
+
+void DMC::TimerClock() {
+
+}
+
+int DMC::GetCurrent() {
+    return 0;
+}
