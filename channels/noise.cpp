@@ -23,14 +23,13 @@ void Noise::Set400E(uint8_t b) {  // mode, period
 void Noise::Set400F(uint8_t b) {  // length counter bitload
     if (enabled_)
         length_counter.set_value(self.LENGTH_COUNTER_TABLE[b >> 3]);
-    envelope_counter_.enable_reload_flag(false);
-    envelope_divider_.enable_reload_flag(false);
+    envelope_counter_.enable_reload_flag();
+    envelope_divider_.enable_reload_flag();
 }
 
 void Noise::EnvelopeClock() {  // called in quarter frames
-    if (envelope_counter_.reload_flag()) {
+    if (envelope_counter_.reload_flag())
         envelope_counter_.Clock();
-    }    
     envelope_divider_.Clock();
 }
 

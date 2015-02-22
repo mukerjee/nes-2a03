@@ -36,8 +36,8 @@ class Noise {
 
     Counter length_counter_(0, false);
     Counter envelope_divider_(0, true, &envelope_counter.Clock());
-    Counter envelope_counter_(15);
-    Counter timer_counter_(0, true, &SequenceClock); // range is 0 - 7FF
+    Counter envelope_counter_(15, false);
+    Counter timer_counter_(0, true, &ShiftRegisterClock); // range is 0 - 7FF
 
     bool enabled_ = 0;
 

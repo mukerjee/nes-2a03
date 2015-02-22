@@ -15,14 +15,14 @@ void Triangle::Set4008(uint8_t b) {  // length counter disable, linear counter l
 }
 
 void Triangle::Set400A(uint8_t b) {  // period low
-    timer_counter_.set_reload((period_ | 255) & b);
+    timer_counter_.set_reload((timer_counter_.reload() | 255) & b);
 }
 
 void Triangle::Set400B(uint8_t b) {  // length counter bitload, period high
     if (enabled_)
         length_counter_.set_value(kLengthCounterTable[b >> 3]);
-    timer_counter_.set_reload((period | 1792) & ((b & 7) << 8));
-    linear_counter_.enable_reload_flag();
+    timer_counter_.set_reload((timer_counter_.reload() | 1792) & ((b & 7) << 8));
+    linear_counter_.enable_reload_flag(true);
 }
 
 void Triangle::SequencerClock() {  // called by timer
