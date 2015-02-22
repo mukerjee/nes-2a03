@@ -1,11 +1,4 @@
 #include "triangle.h"
-#include "counter.h"
-
-void Triangle::SetEnable(bool enabled) {
-    enabled_ = enabled;
-    if (!enabled_)
-        length_counter_.set_value(0);
-}
 
 void Triangle::Set4008(uint8_t b) {  // length counter disable, linear counter load
     length_counter_.set_halt(b >> 7);
@@ -25,7 +18,12 @@ void Triangle::Set400B(uint8_t b) {  // length counter bitload, period high
     linear_counter_.enable_reload_flag(true);
 }
 
-void Triangle::SequencerClock() {  // called by timer
+void Triangle::SequencerClock() {
     if (linear_counter_counter_ > 0 and length_counter_counter_ > 0)
         sequencer_counter_.Clock();
+}
+
+void Triangle::ChannelSpecificCounterCallback(Counter *c) {
+    if (c == &timer_counter_)
+        SequenceClock();
 }

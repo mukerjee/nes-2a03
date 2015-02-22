@@ -7,15 +7,13 @@ class DMC {
  public:
     DMC();
     
-    void SetEnabled(bool enabled);
-
     void Set4010(uint8_t b);
     void Set4011(uint8_t b);
     void Set4012(uint8_t b);
     void Set4013(uint8_t b);
+
+ private:
     
-    void TimerClock();
-    int GetCurrent();
 };
 
 #endif

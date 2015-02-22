@@ -1,11 +1,4 @@
 #include "noise.h"
-#include "counter.h"
-
-void Noise::SetEnable(bool enabled) {
-    enabled_ = enabled;
-    if (!enabled_)
-        length_counter_.set_value(0);
-}
 
 void Noise::Set400C(uint8_t b) {  //  len counter disable, env disable, volume
     length_counter_.set_halt(b >> 5 & 1);
@@ -27,12 +20,6 @@ void Noise::Set400F(uint8_t b) {  // length counter bitload
     envelope_divider_.enable_reload_flag();
 }
 
-void Noise::EnvelopeClock() {  // called in quarter frames
-    if (envelope_counter_.reload_flag())
-        envelope_counter_.Clock();
-    envelope_divider_.Clock();
-}
-
 uint8_t Noise::GetCurrent() {
     if (shift_register_.value() & 1 and length_counter_.value() > 0) {
         if (envelope_counter_.halt())
@@ -43,7 +30,7 @@ uint8_t Noise::GetCurrent() {
         return 0;
 }
 
-void Noise::ShiftRegisterClock() {  // called by timer
+void Noise::ShiftRegisterClock() {
     uint8_t extra_bit;
     if (mode_flag_)
         extra_bit = shift_register_ >> 6 & 1;
@@ -54,3 +41,7 @@ void Noise::ShiftRegisterClock() {  // called by timer
     shift_register_ += feedback << 14;
 }
 
+void Noise::ChannelSpecificCounterCallback(Counter *c) {
+    if (c == &timer_counter_)
+        ShiftRegisterCock();
+}

@@ -1,14 +1,14 @@
 #include "counter.h"
 
 Counter::Counter(int reload, bool loop=true, 
-                 void (*callback)()=NULL, bool down=true,
-                 void (*reload_flag_callback_)()=NULL) {}
+                 Countable *caller=NULL, bool down=true,
+                 Countable *reload_caller=NULL) {}
 
 Counter::Clock() {
     if (halt_) {return;}
     if (reload_flag_) {
-        if (!value_ and reload_flag_callback_)
-            reload_flag_callback_();
+        if (!value_ and reload_caller_)
+            reload_caller_->CounterReloadCallback(this);
         value_ = reload_;
     } else {
         if (value >= 0 && value <= reload_)
@@ -16,8 +16,8 @@ Counter::Clock() {
         if (loop_ && (value_ < 0 || value > reload_)) {
             if(down) {value_ = reload_;}
             else {value_ = 0;}
-            if (callback_)
-                callback_();
+            if (caller_)
+                caller_->CounterCallback(this);
         }
     }
     if (clear_reload_) {

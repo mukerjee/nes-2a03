@@ -1,11 +1,4 @@
 #include "pulse.h"
-#include "counter.h"
-
-void Pulse::SetEnable(bool enabled) {        
-    enabled_ = enabled;
-    if (!enabled_)
-        length_counter_.set_value(0);
-}
 
 void Pulse::Set4000(uint8_t b) {  // duty, len counter disable, env disable, volume
     duty_ = b >> 6;
@@ -37,12 +30,6 @@ void Pulse::Set4003(uint8_t b) {  // length counter bitload, period high
     envelope_divider_.enable_reload_flag();
 }
 
-void Pulse::EnvelopeClock() {  // called in quarter frames
-    if (envelope_counter_.reload_flag())
-        envelope_counter_.Clock();
-    envelope_divider_.Clock();
-}
-
 uint8_t Pulse::GetCurrent() {
     if (timer_counter_.reload() >= 8 and
         kSequences[duty_][sequencer_counter_.value()] and
@@ -65,4 +52,16 @@ int Pulse::SweepGetTarget() {
 void Pulse::SweepAdjustPeriod() {
     if (sweep_shift)
         timer_counter_.set_reload(SweepGetTarget());
+}
+
+void Pulse::ChannelSpecificCounterCallback(Counter *c) {
+    if (c == &sweep_counter_)
+        SweepAdjustPeriod();
+    else if (c == &timer_counter_)
+        SequenceClock();
+}
+
+void Pulse::CounterReloadCallback(Counter *c) {
+    if (c == &sweep_counter_)
+        SweepAdjustPeriod();
 }
