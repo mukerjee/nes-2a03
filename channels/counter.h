@@ -4,6 +4,7 @@
 class Counter {
     int value_ = 0;
     int reload_ = 0;
+    int reset_timer_ = 0; // not used internally
     bool loop_ = true;
     void (*callback_()) = NULL;
     void (*reload_flag_callback_()) = NULL;
@@ -20,9 +21,11 @@ public:
     bool halt() {return halt_;}
     int reload() {return reload_;}
     bool reload_flag() {return reload_flag_;}
+    int reset_timer() {return reset_timer_;}
     void set_value(int value) {value_ = value;}
     void set_reload(int reload) {reload_ = reload;}
     void set_loop(bool loop) {loop_ = loop;}
+    void set_reset_timer(int t) {reset_timer_ = t;}
     void enable_reload_flag(bool keep=false) {
         reload_flag_ = true; 
         clear_reload_ = !keep;}
