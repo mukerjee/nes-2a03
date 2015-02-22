@@ -1,11 +1,4 @@
-#include <vector>
-
-using namespace std;
-
-vector<float> pulse_lookup;
-
-// This is approximate (within 4% of DMC)
-vector<float> tnd_lookup;
+#include "apu_mixer.h"
 
 void mixer_init() {
     pulse_lookup.push_back(0);

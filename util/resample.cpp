@@ -1,10 +1,4 @@
-#include <vector>
-#include <math.h>
-#include <stdio.h>
-
-#define CLOCK_SPEED 1789773  // Hz (NTSC)
-
-using namespace std;
+#includ "resample.h"
 
 void resample(const vector<float> data, const int byte_depth, 
               const int sample_rate, vector<int16_t> &sample_output) {
