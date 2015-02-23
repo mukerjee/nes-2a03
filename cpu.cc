@@ -46,9 +46,9 @@ int main() {
     printf("done instructions\n");
 
     
-    mixer_init();
+    APUMixer apu_mixer;
     vector<float> mixed;
-    apu_mixer(output, mixed);
+    apu_mixer.Mix(output, mixed);
     printf("done mixer\n");
     
     vector<int16_t> sampled;

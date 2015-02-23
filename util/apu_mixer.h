@@ -5,12 +5,18 @@
 
 using namespace std;
 
-vector<float> pulse_lookup;
-
-// This is approximate (within 4% of DMC)
-vector<float> tnd_lookup;
-
-void mixer_init();
-void apu_mixer(const vector<vector<uint8_t>> &data, vector<float> &output);
+class APUMixer {
+ public:
+    APUMixer();
+    void Mix(const vector<vector<uint8_t>> &data, vector<float> &output);
+    
+ private:
+    vector<float> pulse_lookup;
+    vector<float> tnd_lookup;    // This is approximate (within 4% of DMC)
+    
+    void Highpass(vector<float> &data, float frequency);
+    void Lowpass(vector<float> &data, float frequency);
+    float MixOne(const vector<uint8_t> s);
+};
 
 #endif

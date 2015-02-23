@@ -1,6 +1,6 @@
 #include "apu_mixer.h"
 
-void mixer_init() {
+APUMixer::APUMixer() {
     pulse_lookup.push_back(0);
     for (int i = 1; i < 32; i++) {
         pulse_lookup.push_back(95.52 / (8128.0 / i + 100));
@@ -11,31 +11,30 @@ void mixer_init() {
     }
 }
 
-void highpass(vector<float> &data, float frequency) { //first order
+// operates on vectors of fixed size
+void APUMixer::Mix(const vector<vector<uint8_t>> &data, vector<float> &output) {
+    output.clear();
+    for (vector<vector<uint8_t>>::const_iterator it = data.cbegin();
+         it != data.end(); it++) {
+        output.push_back(MixOne(*it));
+    }
+    Highpass(output, 90);
+    Highpass(output, 440);
+    Lowpass(output, 14000);
+}
+
+void APUMixer::Highpass(vector<float> &data, float frequency) { //first order
     // TODO
 }
 
-void lowpass(vector<float> &data, float frequency) { //first order
+void APUMixer::Lowpass(vector<float> &data, float frequency) { //first order
     // TODO
 }
 
-float mix(const int *s) {
+float APUMixer::MixOne(const vector<uint8_t> s) {
     int p1, p2, t, n, d;
     p1 = s[0]; p2 = s[1]; t = s[2]; n = s[3]; d = s[4];
     float pul = pulse_lookup[p1 + p2];
     float tnd = tnd_lookup[3*t + 2*n + d];
     return pul + tnd;
-}
-    
-
-// operates on vectors of fixed size
-void apu_mixer(const vector<vector<uint8_t>> &data, vector<float> &output) {
-    output.clear();
-    for (vector<int*>::const_iterator it = data.cbegin();
-         it != data.end(); it++) {
-        output.push_back(mix(*it));
-    }
-    highpass(output, 90);
-    highpass(output, 440);
-    lowpass(output, 14000);
 }
