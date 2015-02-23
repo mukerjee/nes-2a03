@@ -1,17 +1,21 @@
 #ifndef APU_H
 #define APU_H
 
+#include "countable.h"
+
 #include "pulse.h"
 #include "triangle.h"
 #include "noise.h"
 #include "dmc.h"
+
+#include "counter.h"
 
 #include "apu_mixer.h"
 #include "resample.h"
 
 #include <vector>
 
-class APU {
+class APU : Countable {
  public:
     APU() {}
 
@@ -54,16 +58,15 @@ class APU {
     Triangle triangle_();
     Noise noise_();
     DMC dmc_();
+    Channel channels_ = [pulse1_, pulse2_, triangle_, noise_, dmc_];
 
     // Frame Counter
-    bool fc_irq_inhibit_ = false;
-    bool fc_irq_ = false;
-    bool fc_mode_five_step_ = false;
-    bool fc_please_quarter_clock_ = false;
-    bool fc_please_half_clock_ = false;
-    Counter fc_divider_(1, true, &APUClock);
-    Counter fc_sequencer_(0);
-    Counter fc_reset_timer(0, false, &FCReset);
+    // TODO: Implement 5-step mode and IRQ
+    // These are in terms of CPU cycles, not APU
+    Counter fc_half_clock_(14914, true, this, false);
+    Counter fc_quarter_clock_(7457, true, this, false);
+    Counter fc_divider_(1, true, this);
+    Counter fc_reset_timer(0, false, this);
 
     void FCQuarterClock();
     void FCHalfClock();
