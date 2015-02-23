@@ -17,7 +17,9 @@
 
 class APU : Countable {
  public:
-    APU() {}
+ APU() : pulse1_(true), pulse2_(false), fc_half_clock_(14914, true, this, false),
+        fc_quarter_clock_(7457, true, this, false), fc_divider_(1, true, this),
+        fc_reset_timer_(0, false, this) {}
 
     void Set4000(uint8_t b) {pulse1_.Set4000(b);}
     void Set4001(uint8_t b) {pulse1_.Set4001(b);}
@@ -49,28 +51,32 @@ class APU : Countable {
 
     void CPUClock();
     
-    void GetCurrent(vector<uint8_t*>& output);
+    void GetCurrent(vector<uint8_t>& output);
 
  private:
 
-    Pulse pulse1_(true);
-    Pulse pulse2_(false);
-    Triangle triangle_();
-    Noise noise_();
-    DMC dmc_();
-    Channel channels_ = [pulse1_, pulse2_, triangle_, noise_, dmc_];
+    Pulse pulse1_;
+    Pulse pulse2_;
+    Triangle triangle_;
+    Noise noise_;
+    DMC dmc_;
+    Channel *channels_[5] = {&pulse1_, &pulse2_, &triangle_, &noise_, &dmc_};
 
     // Frame Counter
     // TODO: Implement 5-step mode and IRQ
     // These are in terms of CPU cycles, not APU
-    Counter fc_half_clock_(14914, true, this, false);
-    Counter fc_quarter_clock_(7457, true, this, false);
-    Counter fc_divider_(1, true, this);
-    Counter fc_reset_timer(0, false, this);
+    Counter fc_half_clock_;
+    Counter fc_quarter_clock_;
+    Counter fc_divider_;
+    Counter fc_reset_timer_;
 
+    void FCReset();
     void FCQuarterClock();
     void FCHalfClock();
     void APUClock();
+
+    void CounterCallback(Counter *c);
+    void CounterReloadCallback(Counter *c) {}
 };
 
 #endif

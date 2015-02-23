@@ -3,7 +3,7 @@
 void Triangle::Set4008(uint8_t b) {  // length counter disable, linear counter load
     length_counter_.set_halt(b >> 7);
     if(! b >> 7)
-        linear_counter.clear_reload_flag_next_clock();
+        linear_counter_.clear_reload_flag_next_clock();
     linear_counter_.set_reload(b & 127);
 }
 
@@ -18,12 +18,16 @@ void Triangle::Set400B(uint8_t b) {  // length counter bitload, period high
     linear_counter_.enable_reload_flag(true);
 }
 
+uint8_t Triangle::GetCurrent() {
+    return kSequence[sequencer_counter_.value()];
+}
+
 void Triangle::SequencerClock() {
-    if (linear_counter_counter_ > 0 and length_counter_counter_ > 0)
+    if (linear_counter_.value() > 0 and length_counter_.value() > 0)
         sequencer_counter_.Clock();
 }
 
 void Triangle::ChannelSpecificCounterCallback(Counter *c) {
     if (c == &timer_counter_)
-        SequenceClock();
+        SequencerClock();
 }

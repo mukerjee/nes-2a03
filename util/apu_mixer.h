@@ -11,6 +11,6 @@ vector<float> pulse_lookup;
 vector<float> tnd_lookup;
 
 void mixer_init();
-void apu_mixer(const vector<int*> &data, vector<float> &output);
+void apu_mixer(const vector<vector<uint8_t>> &data, vector<float> &output);
 
 #endif

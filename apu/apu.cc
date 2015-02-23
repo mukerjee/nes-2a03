@@ -2,7 +2,7 @@
 
 void APU::Set4015(uint8_t b) {  // enable individual channels
     for(int i = 0; i < 5; i++) {
-        channels_[i].SetEnabled(b & 1);
+        channels_[i]->SetEnabled(b & 1);
         b >>= 1;
     }
 }
@@ -17,42 +17,19 @@ void APU::Set4017(uint8_t b) {  // frame counter
 uint8_t APU::Get4015() {
     uint8_t b = 0;
     for(int i = 3; i >= 0; i--) {
-        b += channels_[i].get_length_counter();
+        b += channels_[i]->LengthCounterEnabled();
         b <<= 1;
     }
-    b += self.dmc.get_active() << 4;
-    i += self.dmc.get_interrupt() << 6;
+    b += dmc_.active() << 4;
+    b += dmc_.irq() << 6;
     
     // TODO: frame counter IRQ
 
     return b;
 }
 
-void APU::FCQuarterClock() {
-    for(int i = 0; i < 4; i++) 
-        channels_[i].EnvelopeClock();
-    triangle_.LinearCounterClock();
-}
-
-void APU::FCHalfClock() {
-    for(int i = 0; i < 4; i++) {
-        channels_[i].LengthCounterClock();
-        channels_[i].SweepClock();
-    }
-}
-
-void APU::FCReset() {
-    fc_half_clock_.set_value(0);
-    fc_quarter_clock_.set_value(0);
-}
-
-void APU::APUClock() {
-    for(int i = 0; i < 5; i++)
-        channels_[i].TimerClock();
-}
-
 void APU::CPUClock() {
-    fc_reset_timer.Clock();
+    fc_reset_timer_.Clock();
     fc_half_clock_.Clock();
     fc_quarter_clock_.Clock();
     fc_divider_.Clock();
@@ -60,27 +37,42 @@ void APU::CPUClock() {
         triangle_.TimerClock();
 }
 
-void APU::GetCurrent(vector<uint8_t*>& output) {
+void APU::GetCurrent(vector<uint8_t>& output) {
     output.clear();
     for(int i = 0; i < 5; i++)
-        output.push_back(channels_[i].GetCurrent());
+        output.push_back(channels_[i]->GetCurrent());
 }
 
-void APU::CounterCallback(Counter *c) {
-    switch(c) {
-    case &fc_divider_:
-        APUClock();
-        break;
-    case &fc_reset_timer_:
-        FCReset();
-        break;
-    case &fc_half_clock_:
-        FCHalfClock();
-        break;
-    case &fc_quarter_clock_:
-        FCQuarterClock();
-        break;
+void APU::FCReset() {
+    fc_half_clock_.set_value(0);
+    fc_quarter_clock_.set_value(0);
+}
+
+void APU::FCQuarterClock() {
+    for(int i = 0; i < 4; i++) 
+        channels_[i]->EnvelopeClock();
+    triangle_.LinearCounterClock();
+}
+
+void APU::FCHalfClock() {
+    for(int i = 0; i < 4; i++) {
+        channels_[i]->LengthCounterClock();
+        channels_[i]->SweepClock();
     }
 }
 
-void APU::CounterReloadCallback(Counter *c) {}
+void APU::APUClock() {
+    for(int i = 0; i < 5; i++)
+        channels_[i]->TimerClock();
+}
+
+void APU::CounterCallback(Counter *c) {
+    if (c == &fc_divider_)
+        APUClock();
+    else if (c == &fc_reset_timer_)
+        FCReset();
+    else if (c == &fc_half_clock_)
+        FCHalfClock();
+    else if (c == &fc_quarter_clock_)
+        FCQuarterClock();
+}

@@ -29,7 +29,7 @@ float mix(const int *s) {
     
 
 // operates on vectors of fixed size
-void apu_mixer(const vector<int*> &data, vector<float> &output) {
+void apu_mixer(const vector<vector<uint8_t>> &data, vector<float> &output) {
     output.clear();
     for (vector<int*>::const_iterator it = data.cbegin();
          it != data.end(); it++) {

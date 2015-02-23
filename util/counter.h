@@ -3,6 +3,8 @@
 
 #include "countable.h"
 
+class Countable;
+
 class Counter {
     int value_ = 0;
     int reload_ = 0;
@@ -16,8 +18,10 @@ class Counter {
     int reset_timer_ = 0; // not used internally
 
 public:
-    Counter(int reload, bool loop, Countable *caller, bool down,
-            Countable *reload_caller);
+    Counter(int reload, bool loop=true, Countable *caller=nullptr, bool down=true,
+            Countable *reload_caller=nullptr) : reload_(reload), loop_(loop), 
+        caller_(caller), down_(down), reload_caller_(reload_caller) {}
+
     void Clock();
     int value() {return value_;}
     int reload() {return reload_;}
@@ -26,7 +30,7 @@ public:
 
     void set_value(int value) {value_ = value;}
     void set_reload(int reload) {reload_ = reload;}
-    void set_halt_(bool halt) {halt_ = halt;}
+    void set_halt(bool halt) {halt_ = halt;}
     void set_loop(bool loop) {loop_ = loop;}
     void set_down(bool down) {down_ = down;}
     void enable_reload_flag(bool keep=false) {

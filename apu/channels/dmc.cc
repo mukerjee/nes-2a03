@@ -1,13 +1,5 @@
 #include "dmc.h"
 
-DMC::DMC() {
-
-}
-
-void DMC::SetEnabled(bool enabled) {
-
-}
-
 void DMC::Set4010(uint8_t b) {
 
 }
@@ -24,10 +16,6 @@ void DMC::Set4013(uint8_t b) {
 
 }
 
-void DMC::TimerClock() {
-
-}
-
-int DMC::GetCurrent() {
+uint8_t DMC::GetCurrent() {
     return 0;
 }

@@ -1,4 +1,4 @@
-#includ "resample.h"
+#include "resample.h"
 
 void resample(const vector<float> data, const int byte_depth, 
               const int sample_rate, vector<int16_t> &sample_output) {
