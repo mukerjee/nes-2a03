@@ -1,4 +1,4 @@
-CPPFLAGS=-Iapu/ -Iapu/channels/ -Iutil/ -std=c++11
+CPPFLAGS=-Iapu/ -Iapu/channels/ -Iutil/ -std=c++11 -O2
 CXX=g++
 
 SRCS=cpu.cc apu/apu.cc apu/channels/channel.cc apu/channels/pulse.cc apu/channels/triangle.cc apu/channels/noise.cc apu/channels/dmc.cc util/apu_mixer.cc util/counter.cc util/resample.cc

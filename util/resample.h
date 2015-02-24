@@ -8,7 +8,7 @@
 #define CLOCK_SPEED 1789773  // Hz (NTSC)
 using namespace std;
 
-void resample(const vector<float> data, const int byte_depth,
+void resample(const vector<float> data, const int bit_depth,
               const int sample_rate, vector<int16_t> &sample_output);
 
 void write_wave(const char *output_file, const int16_t bit_depth,

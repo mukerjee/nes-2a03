@@ -18,11 +18,11 @@ void Pulse::Set4001(uint8_t b) {  // sweep: enabled, div period, neg flag, shift
 }
 
 void Pulse::Set4002(uint8_t b) {  // period low
-    timer_counter_.set_reload((timer_counter_.reload() | 255) & b);
+    timer_counter_.set_reload((timer_counter_.reload() & 1792) | b);
 }
 
 void Pulse::Set4003(uint8_t b) {  // length counter bitload, period high
-    timer_counter_.set_reload((timer_counter_.reload() | 1729) & ((b & 7) << 8));
+    timer_counter_.set_reload((timer_counter_.reload() & 255) | ((b & 7) << 8));
     if (enabled_)
         length_counter_.set_value(kLengthCounterTable[b >> 3]);
     sequencer_counter_.set_value(0);
@@ -45,7 +45,7 @@ uint8_t Pulse::GetCurrent() {
 int Pulse::SweepGetTarget() { 
     int16_t shift_result = timer_counter_.reload() >> sweep_shift_;
     shift_result *= sweep_positive_;
-    if(sweep_positive_ < 0 and isPulse1_) shift_result--;
+    if(sweep_positive_ < 0 and is_pulse_1_) shift_result--;
     return timer_counter_.reload() + shift_result;
 }
 
