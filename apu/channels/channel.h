@@ -14,6 +14,8 @@ class Channel : Countable {
 
     void SetEnabled(bool enabled);
 
+    virtual void SetByte(uint16_t addr, uint8_t b) = 0;
+
     void LinearCounterClock() {linear_counter_.Clock();}
     void LengthCounterClock() {length_counter_.Clock();}
     void EnvelopeClock();

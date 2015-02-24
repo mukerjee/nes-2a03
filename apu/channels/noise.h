@@ -7,9 +7,7 @@ class Noise : public Channel {
  public:
     Noise() {};
 
-    void Set400C(uint8_t b);
-    void Set400E(uint8_t b);
-    void Set400F(uint8_t b);
+    void SetByte(uint16_t addr, uint8_t b);
 
     uint8_t GetCurrent();
     
@@ -20,6 +18,10 @@ class Noise : public Channel {
 
     bool mode_flag_ = false;
     uint16_t shift_register_ = 1;
+
+    void Set400C(uint8_t b);
+    void Set400E(uint8_t b);
+    void Set400F(uint8_t b);
 
     void ShiftRegisterClock();
     void ChannelSpecificCounterCallback(Counter *c);

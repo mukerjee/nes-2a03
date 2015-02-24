@@ -1,5 +1,22 @@
 #include "apu.h"
 
+void APU::SetByte(uint16_t addr, uint8_t b) {
+    if (addr >= 0x4000 && addr <= 0x4003)
+        pulse1_.SetByte(addr, b);
+    if (addr >= 0x4004 && addr <= 0x4007)
+        pulse2_.SetByte(addr, b);
+    if (addr >= 0x4008 && addr <= 0x400B)
+        triangle_.SetByte(addr, b);
+    if (addr >= 0x400C && addr <= 0x400F)
+        noise_.SetByte(addr, b);
+    if (addr >= 0x4010 && addr <= 0x4013)
+        dmc_.SetByte(addr, b);
+    if (addr == 0x4015)
+        Set4015(b);
+    if (addr == 0x4017)
+        Set4017(b);
+}
+
 void APU::Set4015(uint8_t b) {  // enable individual channels
     for(int i = 0; i < 5; i++) {
         channels_[i]->SetEnabled(b & 1);

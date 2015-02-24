@@ -21,33 +21,8 @@ class APU : Countable {
         fc_quarter_clock_(7457, true, this, false), fc_divider_(1, true, this),
         fc_reset_timer_(0, false, this) {}
 
-    void Set4000(uint8_t b) {pulse1_.Set4000(b);}
-    void Set4001(uint8_t b) {pulse1_.Set4001(b);}
-    void Set4002(uint8_t b) {pulse1_.Set4002(b);}
-    void Set4003(uint8_t b) {pulse1_.Set4003(b);}
-
-    void Set4004(uint8_t b) {pulse2_.Set4000(b);}
-    void Set4005(uint8_t b) {pulse2_.Set4001(b);}
-    void Set4006(uint8_t b) {pulse2_.Set4002(b);}
-    void Set4007(uint8_t b) {pulse2_.Set4003(b);}
-
-    void Set4008(uint8_t b) {triangle_.Set4008(b);}
-    void Set400A(uint8_t b) {triangle_.Set400A(b);}
-    void Set400B(uint8_t b) {triangle_.Set400B(b);}
-
-    void Set400C(uint8_t b) {noise_.Set400C(b);}
-    void Set400E(uint8_t b) {noise_.Set400E(b);}
-    void Set400F(uint8_t b) {noise_.Set400F(b);}
-
-    void Set4010(uint8_t b) {dmc_.Set4010(b);}
-    void Set4011(uint8_t b) {dmc_.Set4011(b);}
-    void Set4012(uint8_t b) {dmc_.Set4012(b);}
-    void Set4013(uint8_t b) {dmc_.Set4013(b);}
-
-    void Set4015(uint8_t b);
-    void Set4017(uint8_t b);
-    
-    uint8_t Get4015();
+    void SetByte(uint16_t addr, uint8_t b);
+    uint8_t GetByte(uint16_t addr);
 
     void CPUClock();
     
@@ -69,6 +44,11 @@ class APU : Countable {
     Counter fc_quarter_clock_;
     Counter fc_divider_;
     Counter fc_reset_timer_;
+
+    void Set4015(uint8_t b);
+    void Set4017(uint8_t b);
+
+    uint8_t Get4015();
 
     void FCReset();
     void FCQuarterClock();

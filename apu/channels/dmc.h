@@ -7,10 +7,7 @@ class DMC : public Channel {
  public:
     DMC() {};
     
-    void Set4010(uint8_t b);
-    void Set4011(uint8_t b);
-    void Set4012(uint8_t b);
-    void Set4013(uint8_t b);
+    void SetByte(uint16_t addr, uint8_t b);
 
     uint8_t GetCurrent();
 
@@ -20,6 +17,11 @@ class DMC : public Channel {
  private:
     bool active_ = false;
     bool irq_ = false;
+
+    void Set4010(uint8_t b);
+    void Set4011(uint8_t b);
+    void Set4012(uint8_t b);
+    void Set4013(uint8_t b);
 };
 
 #endif

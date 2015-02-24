@@ -1,5 +1,16 @@
 #include "dmc.h"
 
+void DMC::SetByte(uint16_t addr, uint8_t b) {
+    if (addr == 0x4010)
+        Set4010(b);
+    if (addr == 0x4011)
+        Set4011(b);
+    if (addr == 0x4012)
+        Set4012(b);
+    if (addr == 0x4013)
+        Set4013(b);
+}
+
 void DMC::Set4010(uint8_t b) {
 
 }

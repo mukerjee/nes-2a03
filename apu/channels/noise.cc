@@ -1,5 +1,14 @@
 #include "noise.h"
 
+void Noise::SetByte(uint16_t addr, uint8_t b) {
+    if (addr == 0x400C)
+        Set400C(b);
+    if (addr == 0x400E)
+        Set400E(b);
+    if (addr == 0x400F)
+        Set400F(b);
+}
+
 void Noise::Set400C(uint8_t b) {  //  len counter disable, env disable, volume
     length_counter_.set_halt(b >> 5 & 1);
     envelope_counter_.set_loop(b >> 5 & 1);

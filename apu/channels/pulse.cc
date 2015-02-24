@@ -1,5 +1,16 @@
 #include "pulse.h"
 
+void Pulse::SetByte(uint16_t addr, uint8_t b) {
+    if (addr == 0x4000 || addr == 0x4004)
+        Set4000(b);
+    if (addr == 0x4001 || addr == 0x4005)
+        Set4001(b);
+    if (addr == 0x4002 || addr == 0x4006)
+        Set4002(b);
+    if (addr == 0x4003 || addr == 0x4007)
+        Set4003(b);
+}
+
 void Pulse::Set4000(uint8_t b) {  // duty, len counter disable, env disable, volume
     duty_ = b >> 6;
     length_counter_.set_halt(b >> 5 & 1);

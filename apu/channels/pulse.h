@@ -7,10 +7,7 @@ class Pulse : public Channel {
  public:
  Pulse(bool is_pulse_1) : is_pulse_1_(is_pulse_1) {sequencer_counter_.set_reload(7);}
 
-    void Set4000(uint8_t b);
-    void Set4001(uint8_t b);
-    void Set4002(uint8_t b);
-    void Set4003(uint8_t b);
+    void SetByte(uint16_t addr, uint8_t b);
 
     uint8_t GetCurrent();
     
@@ -27,6 +24,11 @@ class Pulse : public Channel {
     uint8_t sweep_shift_ = 0;  // range is 0 - 7
         
     bool is_pulse_1_ = true;  // to account for a small difference in sweep unit
+
+    void Set4000(uint8_t b);
+    void Set4001(uint8_t b);
+    void Set4002(uint8_t b);
+    void Set4003(uint8_t b);
 
     int SweepGetTarget();
     void SweepAdjustPeriod();

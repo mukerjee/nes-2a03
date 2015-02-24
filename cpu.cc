@@ -7,36 +7,6 @@
 
 #define CLOCK_SPEED 1789773  // Hz (NTSC)
 
-#define a4000 16384
-#define a4001 16385
-#define a4002 16386
-#define a4003 16387
-
-#define a4004 16388
-#define a4005 16389
-#define a4006 16390
-#define a4007 16391
-
-#define a4008 16392
-#define a4009 16393
-#define a400A 16394
-#define a400B 16395
-
-#define a400C 16396
-#define a400D 16397
-#define a400E 16398
-#define a400F 16399
-
-#define a4010 16400
-#define a4011 16401
-#define a4012 16402
-#define a4013 16403
-
-#define a4014 16404
-#define a4015 16405
-#define a4016 16406
-#define a4017 16407
-
 void Compute(APU &apu,  vector<vector<uint8_t>> &output) {
     apu.CPUClock();
     vector<uint8_t> *partial = new vector<uint8_t>;
@@ -47,76 +17,58 @@ void Compute(APU &apu,  vector<vector<uint8_t>> &output) {
 void Set(APU &apu, vector<vector<uint8_t>> &output, int addr,
          uint8_t b) {
     Compute(apu, output);
-    if(addr == a4000) apu.Set4000(b);
-    if(addr == a4001) apu.Set4001(b);
-    if(addr == a4002) apu.Set4002(b);
-    if(addr == a4003) apu.Set4003(b);
-
-    if(addr == a4004) apu.Set4004(b);
-    if(addr == a4005) apu.Set4005(b);
-    if(addr == a4006) apu.Set4006(b);
-    if(addr == a4007) apu.Set4007(b);
-
-    if(addr == a4008) apu.Set4008(b);
-    if(addr == a400A) apu.Set400A(b);
-    if(addr == a400B) apu.Set400B(b);
-
-    if(addr == a400C) apu.Set400C(b);
-    if(addr == a400E) apu.Set400E(b);
-    if(addr == a400F) apu.Set400F(b);
-
-    if(addr == a4010) apu.Set4010(b);
-    if(addr == a4011) apu.Set4011(b);
-    if(addr == a4012) apu.Set4012(b);
-    if(addr == a4013) apu.Set4013(b);
-
-    if(addr == a4015) apu.Set4015(b);
-    if(addr == a4017) apu.Set4017(b);
-
+    apu.SetByte(addr, b);
     Compute(apu, output);
 }
 
-void HalfSecondNOP(APU &apu, vector<vector<uint8_t>> &output) {
-    for (int i = 0; i < CLOCK_SPEED * 0.5; i++) {
+void TimedNOP(float time, APU &apu, vector<vector<uint8_t>> &output) {
+    for (int i = 0; i < CLOCK_SPEED * time; i++) {
         Compute(apu, output);
     }
 }
 
 void TriangleTest(APU &apu, vector<vector<uint8_t>> &output) {
-    Set(apu, output, a4015, 4);
-    Set(apu, output, a4008, 255);
-    Set(apu, output, a400A, 201);
-    Set(apu, output, a400B, 250);
-    HalfSecondNOP(apu, output);
-    HalfSecondNOP(apu, output);
-    HalfSecondNOP(apu, output);
-    HalfSecondNOP(apu, output);
+    Set(apu, output, 0x4015, 0b00000100);
+    Set(apu, output, 0x4008, 0b11111111);
+    Set(apu, output, 0x400A, 0b11001001);
+    Set(apu, output, 0x400B, 0b11111010);
+    TimedNOP(2, apu, output);
 }
 
 void DutyCycleTest(APU &apu, vector<vector<uint8_t>> &output) {
-    Set(apu, output, a4015, 1);
-    Set(apu, output, a4000, 191);
-    Set(apu, output, a4002, 201);
-    Set(apu, output, a4003, 0);
-    HalfSecondNOP(apu, output);
-    Set(apu, output, a4000, 127);
-    HalfSecondNOP(apu, output);
-    Set(apu, output, a4000, 63);
-    HalfSecondNOP(apu, output);
-    Set(apu, output, a4000, 255);
-    HalfSecondNOP(apu, output);    
+    Set(apu, output, 0x4015, 0b00000001);
+    Set(apu, output, 0x4000, 0b10111111);
+    Set(apu, output, 0x4002, 0b11001001);
+    Set(apu, output, 0x4003, 0b00000000);
+    TimedNOP(0.5, apu, output);
+    Set(apu, output, 0x4000, 0b01111111);
+    TimedNOP(0.5, apu, output);
+    Set(apu, output, 0x4000, 0b00111111);
+    TimedNOP(0.5, apu, output);
+    Set(apu, output, 0x4000, 0b11111111);
+    TimedNOP(0.5, apu, output);    
 }
 
 void PitchTest(APU &apu, vector<vector<uint8_t>> &output) {
-    Set(apu, output, a4015, 1);
-    Set(apu, output, a4000, 191);
-    Set(apu, output, a4003, 1);
-    Set(apu, output, a4002, 0);
-    HalfSecondNOP(apu, output);
-    Set(apu, output, a4002, 29);
-    HalfSecondNOP(apu, output);
-    Set(apu, output, a4002, 120);
-    HalfSecondNOP(apu, output);
+    Set(apu, output, 0x4015, 0b00000001);
+    Set(apu, output, 0x4000, 0b10111111);
+    Set(apu, output, 0x4003, 0b00000001);
+    Set(apu, output, 0x4002, 0b00000000);
+    TimedNOP(0.5, apu, output);
+    Set(apu, output, 0x4002, 0b00011101);
+    TimedNOP(0.5, apu, output);
+    Set(apu, output, 0x4002, 0b01111000);
+    TimedNOP(0.5, apu, output);
+}
+
+void VolumeTest(APU &apu, vector<vector<uint8_t>> &output) {
+    Set(apu, output, 0x4015, 0b00000001);
+    Set(apu, output, 0x4003, 0b00000001);
+    Set(apu, output, 0x4002, 0b00000000);
+    for(int i = 0; i < 16; i++) {
+        Set(apu, output, 0x4000, 0b1011 + i);
+    }
+    TimedNOP(0.5, apu, output);
 }
 
 int main() {
@@ -125,8 +77,8 @@ int main() {
 
     printf("start\n");
     TriangleTest(apu, output);
-    // DutyCycleTest(apu, output);
-    // PitchTest(apu, output);
+    DutyCycleTest(apu, output);
+    PitchTest(apu, output);
 
 
     printf("done instructions, %lu\n", output.size());

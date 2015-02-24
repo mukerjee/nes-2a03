@@ -1,5 +1,14 @@
 #include "triangle.h"
 
+void Triangle::SetByte(uint16_t addr, uint8_t b) {
+    if (addr == 0x4008)
+        Set4008(b);
+    if (addr == 0x400A)
+        Set400A(b);
+    if (addr == 0x400B)
+        Set400B(b);
+}
+
 void Triangle::Set4008(uint8_t b) {  // length counter disable, linear counter load
     length_counter_.set_halt(b >> 7);
     if(! b >> 7)
