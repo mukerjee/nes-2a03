@@ -1,5 +1,19 @@
 #include "resample.h"
 
+void map_samples(const vector<float> data, const int bit_depth,
+                 const int sample_rate, vector<int16_t> &sample_output) {
+    // assumes data is real from 0.0 - 1.0
+    // and len(data) is already sampled to sampling rate
+    for (int i = 0; i < data.size(); i++) {
+        // mapping to BIT_DEPTH space
+        int16_t sample_int = 
+            int16_t(floor(data[i] * (pow(2, bit_depth) - 1) 
+                          - pow(2, bit_depth-1)));
+        sample_output.push_back(sample_int);
+    }
+
+}
+
 void resample(const vector<float> data, const int bit_depth, 
               const int sample_rate, vector<int16_t> &sample_output) {
     // assumes data is real from 0.0 - 1.0
@@ -10,7 +24,7 @@ void resample(const vector<float> data, const int bit_depth,
         float wall_time = float(i) / sample_rate;
         float sample_value = data[int(floor(wall_time * CLOCK_SPEED))];
         
-        // mapping to BYTE_DEPTH space
+        // mapping to BIT_DEPTH space
         int16_t sample_int = 
             int16_t(floor(sample_value * (pow(2, bit_depth) - 1) 
                           - pow(2, bit_depth-1)));

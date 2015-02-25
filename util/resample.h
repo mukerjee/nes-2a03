@@ -8,6 +8,9 @@
 #define CLOCK_SPEED 1789773  // Hz (NTSC)
 using namespace std;
 
+void map_samples(const vector<float> data, const int bit_depth,
+                 const int sample_rate, vector<int16_t> &sample_output);
+
 void resample(const vector<float> data, const int bit_depth,
               const int sample_rate, vector<int16_t> &sample_output);
 
