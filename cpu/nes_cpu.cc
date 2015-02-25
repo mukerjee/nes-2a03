@@ -7,12 +7,18 @@ NesCpu::NesCpu() {
 	memory_ = new NesMemory();
 
 	// TESTING
-	std::cout << "CPU testing Memory" << std::endl;
+	std::cout << "Testing CPU" << std::endl;
 
-	memory_->set_byte(0x00, 32);
-	memory_->set_byte(0x05, 27);
-
-	memory_->print_memory_contents();
+	lda(120);
+	print_state();
+	adc(4);
+	print_state();
+	adc(4);
+	print_state();
+	adc(4);
+	print_state();
+	adc(150);
+	print_state();
 }
 
 NesCpu::~NesCpu() {
@@ -22,6 +28,27 @@ NesCpu::~NesCpu() {
 
 /*************** OP CODES ***************/
 // Descriptions from: http://www.obelisk.demon.co.uk/6502/reference.html
+		
+/**
+* @brief This instruction adds the contents of a memory location to the
+*	accumulator together with the carry bit. If overflow occurs the carry bit is
+*	set, this enables multiple byte addition to be performed.
+*
+* @param value
+*/
+void NesCpu::adc(uint8_t value) {
+	// for arithmetic, pretend everything is signed
+	int8_t original_a = (int8_t)register_a_;
+	int8_t new_a = (int8_t)register_a_;
+	new_a += (int8_t)value;
+	if (carry_flag_) new_a++;
+	register_a_ = (uint8_t)new_a;
+
+	carry_flag_ = ((uint8_t)new_a < (uint8_t)original_a);
+	zero_flag_ = (value == 0); // TODO: ???
+	overflow_flag_ = (new_a < original_a);
+	negative_flag_ = ((value & 0x80) == 0x80);  // bit 7 set?
+}
 
 /**
 * @brief Loads a byte of memory into the accumulator setting the zero and
@@ -31,7 +58,8 @@ NesCpu::~NesCpu() {
 */
 void NesCpu::lda(uint8_t value) {
 	register_a_ = value;
-	zero_flag_ = (value == 0);
+
+	zero_flag_ = (value == 0);  // TODO: ???
 	negative_flag_ = ((value & 0x80) == 0x80);  // bit 7 set?
 }
 		
@@ -199,4 +227,18 @@ uint16_t NesCpu::calculate_indirect_address(uint16_t address_location) {
 	uint8_t actual_addr_hi = memory_->get_byte(address_location+1);
 	uint16_t actual_addr = ((actual_addr_hi << 8) | actual_addr_lo);  // TODO: test
 	return actual_addr;
+}
+		
+		
+/*************** TESTING ***************/
+void NesCpu::print_state() {
+	printf("\nA:\t0x%02x  (%u)\nX:\t0x%02x  (%u)\nY:\t0x%02x  (%u)\n\n",
+		register_a_, register_a_,
+		register_x_, register_x_,
+		register_y_, register_y_);
+
+	printf("CARRY\tZERO\tINTER\tDECIMAL\tBREAK\tOVERFLW\tNEG\n");
+	printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\n\n", carry_flag_, zero_flag_,
+		interrupt_disable_, decimal_mode_flag_, break_command_,
+		overflow_flag_, negative_flag_);
 }

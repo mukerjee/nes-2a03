@@ -18,6 +18,11 @@ class NesCpu {
 		/* TODO: make function that looks up the opcode in the above map, calls
 		the appropriate addressing mode function to get the data value the op
 		should operate on, and then calls the op.  */
+
+		/* TODO: right now I'm storing bytes in memory as uint8_t, but if I
+		pull them out to do math on them, I cast them to int8_t. Is that ok? */
+
+		// TODO: zero flag set if *signed* val is 0 or *unsigned* is 0?
 		
 		/*************** MEMORY ***************/
 		NesMemory *memory_;
@@ -46,6 +51,7 @@ class NesCpu {
 
 
 		/*************** OP CODES ***************/
+		void adc(uint8_t value);
 		void lda(uint8_t value);
 
 
@@ -64,6 +70,10 @@ class NesCpu {
 
 		// helper function for indirect addressing modes
 		inline uint16_t calculate_indirect_address(uint16_t address_location);
+		
+
+		/*************** TESTING ***************/
+		void print_state();
 };
 
 #endif  /* NES_CPU_H */
