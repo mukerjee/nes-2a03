@@ -118,10 +118,13 @@ void EnvelopeTest() {
     }
 }
 
-// REDO -- organize based on actual lookup values
-// cycle through length counter values for all channels. should
-// get longer throughout the test
+// cycle through length counter values for all channels. 
+// should get longer throughout the test
 void LengthTest() {
+    uint8_t sorted_lengths[32] = {0x03, 0x05, 0x07, 0x09, 0x0B, 0x00, 0x0D, 0x10, 
+                                  0x0F, 0x0C, 0x11, 0x1C, 0x13, 0x15, 0x02, 0x17, 
+                                  0x19, 0x12, 0x1B, 0x0E, 0x1D, 0x1F, 0x1E, 0x04, 
+                                  0x14, 0x0A, 0x1A, 0x06, 0x16, 0x08, 0x18, 0x01};
     for(int j = 0; j < 4; j++) {
         Set(0x4015, 1 << j);
         TimedNOP(0.25);
@@ -131,8 +134,8 @@ void LengthTest() {
             Set(0x4000 + 4*j, 0b10011111);
         Set(0x4002 + 4*j, 0b00000000);
         for(int i = 0; i < 32; i++) {
-            Set(0x4003 + 4*j, 0b00000011 + (i<<3));
-            TimedNOP(1);
+            Set(0x4003 + 4*j, 0b00000011 + (sorted_lengths[i]<<3));
+            TimedNOP(2);
         }
     }
 }
