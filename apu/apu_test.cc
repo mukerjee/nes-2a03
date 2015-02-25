@@ -36,8 +36,8 @@ void TimedNOP(float time) {
         Compute();
 }
 
-
 // BROKEN (pitches and noise chan?)
+// play one note for one second for each channel
 void ContinuousTest() {
     for(int j = 0; j < 4; j++) {
         Set(0x4015, 1 << j);
@@ -49,6 +49,7 @@ void ContinuousTest() {
     }
 }
 
+// cycle through different duty cycles (12.5, 25, 50, 75) for pulses
 void DutyCycleTest() {
     for(int j = 0; j < 4; j++) {
         if (j == 2 || j == 3) { continue; }
@@ -63,6 +64,9 @@ void DutyCycleTest() {
     }
 }
 
+// BROKEN has weird overtones in pulse, triangle loops? triangle has weird noise
+// cycle through all period values for pulses and triangle timers. 
+// should decrease pitch throughout
 void PitchTest() {
     for(int j = 0; j < 4; j++) {        
         if (j == 3) { continue; }
@@ -76,6 +80,7 @@ void PitchTest() {
     }
 }
 
+// increase volume then decrease volume for pulses and noise
 void VolumeTest() {
     for(int j = 0; j < 4; j++) {
         if (j == 2) { continue; }
@@ -94,6 +99,9 @@ void VolumeTest() {
     }
 }
 
+// BROKEN: can't get past some envelope length
+// cycle through envelope length values (then same with loops) for all waves
+// should get longer throughout the test (until we test loops)
 void EnvelopeTest() {
     for(int j = 0; j < 4; j++) {
         if (j == 2) { continue; }
@@ -110,6 +118,9 @@ void EnvelopeTest() {
     }
 }
 
+// REDO -- organize based on actual lookup values
+// cycle through length counter values for all channels. should
+// get longer throughout the test
 void LengthTest() {
     for(int j = 0; j < 4; j++) {
         Set(0x4015, 1 << j);
@@ -121,11 +132,15 @@ void LengthTest() {
         Set(0x4002 + 4*j, 0b00000000);
         for(int i = 0; i < 32; i++) {
             Set(0x4003 + 4*j, 0b00000011 + (i<<3));
-            TimedNOP(0.25);
+            TimedNOP(1);
         }
     }
 }
 
+// BROKEN
+// cycle through shift, period, and negate values for
+// the sweep units in the pulse waves. should sweep down stronger,
+// then slower, then sweep up.
 void SweepTest() {
     for(int j = 0; j < 4; j++) {
         if (j == 2 || j == 3) { continue; }
@@ -146,6 +161,9 @@ void SweepTest() {
     }
 }
 
+// BROKEN
+// cycle through possible triangle linear counter values
+// notes should become longer throughout the test.
 void LinearCounterTest() {
     Set(0x4015, 0b00000100);
     Set(0x400A, 0b00000000);
@@ -156,6 +174,22 @@ void LinearCounterTest() {
     }
 }
 
+// cycles through the 16 periods and 2 modes of noise channel
+void NoiseTest() {
+    Set(0x4015, 0b00001000);
+    Set(0x400C, 0b00111111);
+    Set(0x400F, 0b00000000);
+    for (int mode = 0; mode < 2; mode++) {
+        for (int period = 0; period < 16; period++) {
+            Set(0x400E, (mode << 7) + period);
+            TimedNOP(0.25);
+        }
+    }
+}
+
+// cycles through the cases where the channels should be muted
+// since we can't set the length counter directly, we use a short
+// length counter value as a proxy.
 void EdgeCases() {
     for(int j = 0; j < 4; j++) {
         if (j == 2 || j == 3) { continue; }
@@ -178,6 +212,13 @@ void EdgeCases() {
         Set(0x4002 + 4*j, 0b00000000);
         TimedNOP(0.1);
 
+        // BROKEN
+        // length counter halt
+        Set(0x4000 + 4*j, 0b10111111);
+        Set(0x4003 + 4*j, 0b00011011);
+        Set(0x4002 + 4*j, 0b00000000);
+        TimedNOP(0.1);
+
         // sweep output exceeds 7FF
         Set(0x4000 + 4*j, 0b10111111);
         for (int i = 0x400; i < 0x800; i++) {
@@ -188,22 +229,45 @@ void EdgeCases() {
     }
 
     // triangle
-    Set(0x4015, 3);
+    Set(0x4015, 0b00000100);
     TimedNOP(0.1);
 
-    // BROKEN
     // length counter set small
     Set(0x4000 + 4*2, 0b00011111);
     Set(0x4003 + 4*2, 0b00011011);
     Set(0x4002 + 4*2, 0b00000000);
     TimedNOP(0.1);
 
-    // linear counter set small
+    // BROKEN
+    // length counter set to halt
+    Set(0x4000 + 4*2, 0b10011111);
+    Set(0x4003 + 4*2, 0b00011011);
+    Set(0x4002 + 4*2, 0b00000000);
+    TimedNOP(0.1);
+
+    // linear counter set to 0
     Set(0x4000 + 4*2, 0b00000000);
     Set(0x4003 + 4*2, 0b00011011);
     Set(0x4002 + 4*2, 0b00000000);
     TimedNOP(0.1);
     
+
+    // noise
+    Set(0x4015, 0b00001000);
+    TimedNOP(0.1);
+    
+    // length counter set small
+    Set(0x4000 + 4*3, 0b00011111);
+    Set(0x4003 + 4*3, 0b00011011);
+    Set(0x4002 + 4*3, 0b00000000);
+    TimedNOP(0.1);
+
+    // BROKEN
+    // length counter set to halt
+    Set(0x4000 + 4*3, 0b00111111);
+    Set(0x4003 + 4*3, 0b00011011);
+    Set(0x4002 + 4*3, 0b00000000);
+    TimedNOP(0.1);
 }
 
 int main(int argc, char **argv) {
@@ -229,6 +293,8 @@ int main(int argc, char **argv) {
         SweepTest();
     else if(!strcmp(argv[1], "linear"))
         LinearCounterTest();
+    else if(!strcmp(argv[1], "noise"))
+        NoiseTest();
     else if(!strcmp(argv[1], "edge"))
         EdgeCases();
     else {
