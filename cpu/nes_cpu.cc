@@ -45,9 +45,35 @@ void NesCpu::adc(uint8_t value) {
 	register_a_ = (uint8_t)new_a;
 
 	carry_flag_ = ((uint8_t)new_a < (uint8_t)original_a);
-	zero_flag_ = (value == 0); // TODO: ???
+	zero_flag_ = (register_a_ == 0);  // is accumulator 0?
 	overflow_flag_ = (new_a < original_a);
 	negative_flag_ = ((value & 0x80) == 0x80);  // bit 7 set?
+}
+		
+/**
+* @brief A logical AND is performed, bit by bit, on the accumulator contents
+*	using the contents of a byte of memory.
+*
+* @param value
+*/
+void NesCpu::AND(uint8_t value) {
+	register_a_ &= value;
+
+	zero_flag_ = (register_a_ == 0);  // is accumulator 0?
+	negative_flag_ = ((value & 0x80) == 0x80);  // bit 7 set?
+}
+
+/**
+* @brief This operation shifts all the bits of the accumulator or memory
+*	contents one bit left. Bit 0 is set to 0 and bit 7 is placed in the carry flag.
+*	The effect of this operation is to multiply the memory contents by 2 (ignoring
+*	2's complement considerations), setting the carry if the result will not fit in
+*	8 bits.
+*
+* @param value
+*/
+void NesCpu::asl(uint8_t value) {
+	
 }
 
 /**
@@ -59,7 +85,7 @@ void NesCpu::adc(uint8_t value) {
 void NesCpu::lda(uint8_t value) {
 	register_a_ = value;
 
-	zero_flag_ = (value == 0);  // TODO: ???
+	zero_flag_ = (register_a_ == 0);  // is accumulator 0?
 	negative_flag_ = ((value & 0x80) == 0x80);  // bit 7 set?
 }
 		

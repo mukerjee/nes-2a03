@@ -4,3 +4,4 @@
 *.a
 apu_test
 test.wav
+*.swp

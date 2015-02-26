@@ -22,8 +22,13 @@ class NesCpu {
 		/* TODO: right now I'm storing bytes in memory as uint8_t, but if I
 		pull them out to do math on them, I cast them to int8_t. Is that ok? */
 
-		// TODO: zero flag set if *signed* val is 0 or *unsigned* is 0?
+		/* TODO: think about how to handle read/modify/write instructions.
+		Separate set of adressing mode functions? Or they all return address
+		but immediate? Maybe before going any further we need the outer program
+		function; writing it might make the answer obvoius.  */
 		
+		
+
 		/*************** MEMORY ***************/
 		NesMemory *memory_;
 
@@ -53,6 +58,8 @@ class NesCpu {
 		/*************** OP CODES ***************/
 		void adc(uint8_t value);
 		void lda(uint8_t value);
+		void AND(uint8_t value);
+		void asl(uint8_t value);
 
 
 		/*************** ADDRESSING MODES ***************/
