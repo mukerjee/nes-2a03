@@ -15,13 +15,13 @@ void Pulse::Set4000(uint8_t b) {  // duty, len counter disable, env disable, vol
     duty_ = b >> 6;
     length_counter_.set_halt(b >> 5 & 1);
     envelope_counter_.set_loop(b >> 5 & 1);
-    envelope_counter_.set_halt(b >> 4 & 1);
+    constant_volume_ = b >> 4 & 1;
     envelope_divider_.set_reload(b & 15);
     volume_ = b & 15;
 }
 
 void Pulse::Set4001(uint8_t b) {  // sweep: enabled, div period, neg flag, shift count
-    sweep_counter_.set_halt(b >> 7);
+    sweep_counter_.set_halt(!(b >> 7));
     sweep_counter_.set_reload(b >> 4 & 7);
     sweep_counter_.enable_reload_flag();
     sweep_positive_ = -2*(b >> 3 & 1) + 1;  // -1 if negate flag, 1 if not
@@ -29,11 +29,11 @@ void Pulse::Set4001(uint8_t b) {  // sweep: enabled, div period, neg flag, shift
 }
 
 void Pulse::Set4002(uint8_t b) {  // period low
-    timer_counter_.set_reload((timer_counter_.reload() & 1792) | b);
+    timer_counter_.set_reload((timer_counter_.reload() & 0x700) | b);
 }
 
 void Pulse::Set4003(uint8_t b) {  // length counter bitload, period high
-    timer_counter_.set_reload((timer_counter_.reload() & 255) | ((b & 7) << 8));
+    timer_counter_.set_reload((timer_counter_.reload() & 0xFF) | ((b & 7) << 8));
     if (enabled_)
         length_counter_.set_value(kLengthCounterTable[b >> 3]);
     sequencer_counter_.set_value(0);
@@ -44,8 +44,8 @@ void Pulse::Set4003(uint8_t b) {  // length counter bitload, period high
 uint8_t Pulse::GetCurrent() {
     if (timer_counter_.reload() >= 8 and
         kSequences[duty_][sequencer_counter_.value()] and
-        SweepGetTarget() <= 2047 and length_counter_.value()) {
-        if (envelope_counter_.halt())
+        SweepGetTarget() <= 0x7FF and length_counter_.value()) {
+        if (constant_volume_)
             return volume_;
         else
             return envelope_counter_.value();
@@ -56,13 +56,16 @@ uint8_t Pulse::GetCurrent() {
 int Pulse::SweepGetTarget() { 
     int16_t shift_result = timer_counter_.reload() >> sweep_shift_;
     shift_result *= sweep_positive_;
-    if(sweep_positive_ < 0 and is_pulse_1_) shift_result--;
+    if(sweep_positive_ == -1 and is_pulse_1_) shift_result--;
     return timer_counter_.reload() + shift_result;
 }
 
 void Pulse::SweepAdjustPeriod() {
-    if (sweep_shift_)
-        timer_counter_.set_reload(SweepGetTarget());
+    if (sweep_shift_) {
+        int target = SweepGetTarget();
+        if(target <= 0x7FF)
+            timer_counter_.set_reload(SweepGetTarget());
+    }
 }
 
 void Pulse::CounterReloadCallback(Counter *c) {

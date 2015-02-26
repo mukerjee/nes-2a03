@@ -36,16 +36,16 @@ void TimedNOP(float time) {
         Compute();
 }
 
-// BROKEN (pitches and noise chan?)
+// BROKEN does the noise channel work right?
 // play one note for one second for each channel
 void ContinuousTest() {
     for(int j = 0; j < 4; j++) {
         Set(0x4015, 1 << j);
         TimedNOP(0.1);
-        Set(0x4000 + 4*j, 0b10111111);
+        Set(0x4000 + 4*j, 0b00111111);
+        Set(0x4003 + 4*j, 0b00000000);
         Set(0x4002 + 4*j, 0b11001001);
-        Set(0x4003 + 4*j, 0b00000001);
-        TimedNOP(1);
+        TimedNOP(5);
     }
 }
 
@@ -64,7 +64,7 @@ void DutyCycleTest() {
     }
 }
 
-// BROKEN has weird overtones in pulse, triangle loops? triangle has weird noise
+// BROKEN has weird overtones in pulse
 // cycle through all period values for pulses and triangle timers. 
 // should decrease pitch throughout
 void PitchTest() {
@@ -72,6 +72,7 @@ void PitchTest() {
         if (j == 3) { continue; }
         Set(0x4015, 1 << j);
         Set(0x4000 + 4*j, 0b10111111);
+        Set(0x4001 + 4*j, 0b00001000);
         for(int i = 0; i < 0x7FF; i++) {
             Set(0x4003 + 4*j, i >> 8);
             Set(0x4002 + 4*j, i & 0xFF);
@@ -99,10 +100,9 @@ void VolumeTest() {
     }
 }
 
-// BROKEN: can't get past some envelope length
 // cycle through envelope length values (then same with loops) for all waves
 // should get longer throughout the test (until we test loops)
-void EnvelopeTest() {
+ void EnvelopeTest() {
     for(int j = 0; j < 4; j++) {
         if (j == 2) { continue; }
         Set(0x4015, 1 << j);
@@ -111,7 +111,7 @@ void EnvelopeTest() {
         for(int loop = 0; loop < 2; loop++) {
             for(int period = 0; period < 16; period++) {
                 Set(0x4000 + 4*j, 0b10000000 + (loop<<5) + period);
-                Set(0x4003 + 4*j, 0b00000011);
+                Set(0x4003 + 4*j, 0b00001011);
                 TimedNOP(1);
             }
         }
@@ -119,7 +119,8 @@ void EnvelopeTest() {
 }
 
 // cycle through length counter values for all channels. 
-// should get longer throughout the test
+// should get longer throughout the test. We also do a halt test where notes
+// should just stay held.
 void LengthTest() {
     uint8_t sorted_lengths[32] = {0x03, 0x05, 0x07, 0x09, 0x0B, 0x00, 0x0D, 0x10, 
                                   0x0F, 0x0C, 0x11, 0x1C, 0x13, 0x15, 0x02, 0x17, 
@@ -128,19 +129,21 @@ void LengthTest() {
     for(int j = 0; j < 4; j++) {
         Set(0x4015, 1 << j);
         TimedNOP(0.25);
-        if (j == 2) 
-            Set(0x4000 + 4*j, 0b00011111);
-        else
-            Set(0x4000 + 4*j, 0b10011111);
-        Set(0x4002 + 4*j, 0b00000000);
-        for(int i = 0; i < 32; i++) {
-            Set(0x4003 + 4*j, 0b00000011 + (sorted_lengths[i]<<3));
-            TimedNOP(2);
+
+        for (int halt = 0; halt < 2; halt++) {
+            if (j == 2) 
+                Set(0x4000 + 4*j, 0b01111111 + (halt << 7));
+            else
+                Set(0x4000 + 4*j, 0b10011111 + (halt << 5));
+            Set(0x4002 + 4*j, 0b00000000);
+            for(int i = 0; i < 32; i++) {
+                Set(0x4003 + 4*j, 0b00000011 + (sorted_lengths[i]<<3));
+                TimedNOP(2);
+            }
         }
     }
 }
 
-// BROKEN
 // cycle through shift, period, and negate values for
 // the sweep units in the pulse waves. should sweep down stronger,
 // then slower, then sweep up.
@@ -150,30 +153,29 @@ void SweepTest() {
         Set(0x4015, 1 << j);
         TimedNOP(0.1);
         Set(0x4000 + 4*j, 0b10111111);
-        Set(0x4003 + 4*j, 0b00000011);
-        Set(0x4002 + 4*j, 0b00000000);
         for(int negate = 0; negate < 2; negate++) {
-            for (int period = 0; period < 8; period++) {
-                for (int shift = 0; shift < 8; shift++) {
+            for (int period = 1; period < 8; period++) {
+                for (int shift = 7; shift > 0; shift--) {
+                    Set(0x4003 + 4*j, 0b00000001);
+                    Set(0x4002 + 4*j, 0b00001001);
                     Set(0x4001 + 4*j, 0b10000000 + (period << 4) + (negate << 3)
                         + shift);
-                    TimedNOP(0.25);
+                    TimedNOP(1);
                 }
             }
         }
     }
 }
 
-// BROKEN
 // cycle through possible triangle linear counter values
 // notes should become longer throughout the test.
 void LinearCounterTest() {
     Set(0x4015, 0b00000100);
     Set(0x400A, 0b00000000);
     for (int i = 0; i < 128; i++) {
+        Set(0x400B, 0b00001011);
         Set(0x4008, i);
-        Set(0x400B, 0b00000011);
-        TimedNOP(0.25);
+        TimedNOP(1);
     }
 }
 
@@ -195,6 +197,7 @@ void NoiseTest() {
 // length counter value as a proxy.
 void EdgeCases() {
     for(int j = 0; j < 4; j++) {
+        continue;
         if (j == 2 || j == 3) { continue; }
         
         // pulse waves
@@ -211,13 +214,6 @@ void EdgeCases() {
 
         // length counter set small
         Set(0x4000 + 4*j, 0b10011111);
-        Set(0x4003 + 4*j, 0b00011011);
-        Set(0x4002 + 4*j, 0b00000000);
-        TimedNOP(0.1);
-
-        // BROKEN
-        // length counter halt
-        Set(0x4000 + 4*j, 0b10111111);
         Set(0x4003 + 4*j, 0b00011011);
         Set(0x4002 + 4*j, 0b00000000);
         TimedNOP(0.1);
@@ -241,33 +237,18 @@ void EdgeCases() {
     Set(0x4002 + 4*2, 0b00000000);
     TimedNOP(0.1);
 
-    // BROKEN
-    // length counter set to halt
-    Set(0x4000 + 4*2, 0b10011111);
-    Set(0x4003 + 4*2, 0b00011011);
-    Set(0x4002 + 4*2, 0b00000000);
-    TimedNOP(0.1);
-
     // linear counter set to 0
     Set(0x4000 + 4*2, 0b00000000);
     Set(0x4003 + 4*2, 0b00011011);
     Set(0x4002 + 4*2, 0b00000000);
     TimedNOP(0.1);
     
-
     // noise
     Set(0x4015, 0b00001000);
     TimedNOP(0.1);
     
     // length counter set small
     Set(0x4000 + 4*3, 0b00011111);
-    Set(0x4003 + 4*3, 0b00011011);
-    Set(0x4002 + 4*3, 0b00000000);
-    TimedNOP(0.1);
-
-    // BROKEN
-    // length counter set to halt
-    Set(0x4000 + 4*3, 0b00111111);
     Set(0x4003 + 4*3, 0b00011011);
     Set(0x4002 + 4*3, 0b00000000);
     TimedNOP(0.1);

@@ -5,9 +5,12 @@
 
 class Pulse : public Channel {
  public:
- Pulse(bool is_pulse_1) : is_pulse_1_(is_pulse_1) {sequencer_counter_.set_reload(7);}
+ Pulse(bool is_pulse_1) : is_pulse_1_(is_pulse_1), 
+        sweep_counter_(0, true, this, true, this) {sequencer_counter_.set_reload(7);}
 
     void SetByte(uint16_t addr, uint8_t b);
+
+    virtual void SweepClock() {sweep_counter_.Clock();}
 
     uint8_t GetCurrent();
     
@@ -22,6 +25,7 @@ class Pulse : public Channel {
 
     int8_t sweep_positive_ = 1;  // -1 or 1
     uint8_t sweep_shift_ = 0;  // range is 0 - 7
+    Counter sweep_counter_;
         
     bool is_pulse_1_ = true;  // to account for a small difference in sweep unit
 

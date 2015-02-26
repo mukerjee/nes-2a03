@@ -5,10 +5,12 @@
 
 class Triangle : public Channel {
  public:
-    Triangle() {sequencer_counter_.set_reload(31); sequencer_counter_.set_down(false);};
+ Triangle() : linear_counter_(0, false) {
+        sequencer_counter_.set_reload(31); sequencer_counter_.set_down(false);};
 
     void SetByte(uint16_t addr, uint8_t b);
 
+    void LinearCounterClock() {linear_counter_.Clock();}
     void EnvelopeClock() {}
     uint8_t GetCurrent();
 
@@ -21,6 +23,10 @@ class Triangle : public Channel {
     void Set4008(uint8_t b);
     void Set400A(uint8_t b);
     void Set400B(uint8_t b);
+
+    bool linear_counter_control_flag_ = false;
+
+    Counter linear_counter_; // range is 0 - 127
 
     void SequencerClock();
     void ChannelSpecificCounterCallback(Counter *c);

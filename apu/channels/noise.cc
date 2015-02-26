@@ -12,7 +12,7 @@ void Noise::SetByte(uint16_t addr, uint8_t b) {
 void Noise::Set400C(uint8_t b) {  //  len counter disable, env disable, volume
     length_counter_.set_halt(b >> 5 & 1);
     envelope_counter_.set_loop(b >> 5 & 1);
-    envelope_counter_.set_halt(b >> 4 & 1);
+    constant_volume_ = b >> 4 & 1;
     envelope_divider_.set_reload(b & 15);
     volume_ = b & 15;
 }
@@ -30,8 +30,8 @@ void Noise::Set400F(uint8_t b) {  // length counter bitload
 }
 
 uint8_t Noise::GetCurrent() {
-    if (shift_register_ & 1 and length_counter_.value() > 0) {
-        if (envelope_counter_.halt())
+    if ((shift_register_ & 1) == 0 and length_counter_.value() > 0) {
+        if (constant_volume_)
             return volume_;
         else
             return envelope_counter_.value();
@@ -47,7 +47,7 @@ void Noise::ShiftRegisterClock() {
         extra_bit = shift_register_ >> 1 & 1;
     uint8_t feedback = (shift_register_ & 1) ^ extra_bit;
     shift_register_ >>= 1;
-    shift_register_ += feedback << 14;
+    shift_register_ |= feedback << 14;
 }
 
 void Noise::ChannelSpecificCounterCallback(Counter *c) {

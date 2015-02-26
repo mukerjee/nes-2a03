@@ -12,9 +12,11 @@ class Noise : public Channel {
     uint8_t GetCurrent();
     
  private:
-    const uint16_t kPeriodTable[16] = 
-        {   4,    8,   16,   32,   64,   96,  128,  160,
-            202,  254,  380,  508,  762, 1016, 2034, 4068};
+    const uint16_t kPeriodTable[16] =
+        //    {  4,    8,   16,   32,   64,   96,  128,  160,
+    // 202,  254,  380,  508,  762, 1016, 2034, 4068};
+            { 0x002, 0x004, 0x008, 0x010, 0x020, 0x030, 0x040, 0x050, 
+              0x065, 0x07F, 0x0BE, 0x0FE, 0x17D, 0x1FC, 0x3F9, 0x7F2 }; 
 
     bool mode_flag_ = false;
     uint16_t shift_register_ = 1;
