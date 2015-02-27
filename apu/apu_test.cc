@@ -1,6 +1,5 @@
 #include "apu.h"
 #include "apu_mixer.h"
-#include "resample.h"
 
 #include <vector>
 #include <iostream>
@@ -45,7 +44,7 @@ void ContinuousTest() {
         Set(0x4000 + 4*j, 0b00111111);
         Set(0x4003 + 4*j, 0b00000000);
         Set(0x4002 + 4*j, 0b11001001);
-        TimedNOP(5);
+        TimedNOP(1);
     }
 }
 
@@ -185,7 +184,7 @@ void NoiseTest() {
     Set(0x400C, 0b00111111);
     Set(0x400F, 0b00000000);
     for (int mode = 0; mode < 2; mode++) {
-        for (int period = 0; period < 16; period++) {
+        for (int period = 15; period >= 0; period--) {
             Set(0x400E, (mode << 7) + period);
             TimedNOP(0.25);
         }
@@ -292,22 +291,15 @@ int main(int argc, char **argv) {
     }
 
     APUMixer apu_mixer;
-    vector<float> mixed;
-    apu_mixer.Mix(g_output, mixed);
+    vector<int16_t> mixed;
+    apu_mixer.Mix(g_output, 16, 48000, mixed);
     printf("done mixer, %lu\n", mixed.size());
-    for(vector<float>::const_iterator i = mixed.begin(); i != mixed.end(); ++i) {
+    for(vector<int16_t>::const_iterator i = mixed.begin(); i != mixed.end(); ++i) {
         //cout << *i << ' ';
     }
         
-    vector<int16_t> sampled;
-    map_samples(mixed, 16, 48000, sampled);
-    printf("done resample %lu\n", sampled.size());
-    for(vector<int16_t>::const_iterator i = sampled.begin(); i != sampled.end(); ++i) {
-        //cout << *i << ' ';
-    }
-
-    write_wave("test.wav", 16, 48000, sampled);
-    printf("done wave %lu\n", sampled.size());
+    write_wave("test.wav", 16, 48000, mixed);
+    printf("done wave %lu\n", mixed.size());
 
     return 0;
 }
