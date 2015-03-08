@@ -9,15 +9,16 @@ NesCpu::NesCpu() {
 	// TESTING
 	std::cout << "Testing CPU" << std::endl;
 
-	lda(120);
+	uint8_t result = asl(154);
+	printf("154 shifted is %u\n", result);
 	print_state();
-	adc(4);
+	
+	result = asl(0);
+	printf("0 shifted is %u\n", result);
 	print_state();
-	adc(4);
-	print_state();
-	adc(4);
-	print_state();
-	adc(150);
+	
+	result = asl(250);
+	printf("250 shifted is %u\n", result);
 	print_state();
 }
 
@@ -26,8 +27,10 @@ NesCpu::~NesCpu() {
 }
 		
 
-/*************** OP CODES ***************/
+/*************** INSTRUCTIONS ***************/
 // Descriptions from: http://www.obelisk.demon.co.uk/6502/reference.html
+
+/* GROUP 1 */
 		
 /**
 * @brief This instruction adds the contents of a memory location to the
@@ -64,19 +67,6 @@ void NesCpu::AND(uint8_t value) {
 }
 
 /**
-* @brief This operation shifts all the bits of the accumulator or memory
-*	contents one bit left. Bit 0 is set to 0 and bit 7 is placed in the carry flag.
-*	The effect of this operation is to multiply the memory contents by 2 (ignoring
-*	2's complement considerations), setting the carry if the result will not fit in
-*	8 bits.
-*
-* @param value
-*/
-void NesCpu::asl(uint8_t value) {
-	
-}
-
-/**
 * @brief Loads a byte of memory into the accumulator setting the zero and
 *	negative flags as appropriate.
 *
@@ -87,6 +77,28 @@ void NesCpu::lda(uint8_t value) {
 
 	zero_flag_ = (register_a_ == 0);  // is accumulator 0?
 	negative_flag_ = ((value & 0x80) == 0x80);  // bit 7 set?
+}
+
+/* GROUP 2 */
+
+/**
+* @brief This operation shifts all the bits of the accumulator or memory
+*	contents one bit left. Bit 0 is set to 0 and bit 7 is placed in the carry flag.
+*	The effect of this operation is to multiply the memory contents by 2 (ignoring
+*	2's complement considerations), setting the carry if the result will not fit in
+*	8 bits.
+*
+* @param value
+*/
+uint8_t NesCpu::asl(uint8_t value) {
+	uint8_t result = value;
+	result <<= 1;
+
+	carry_flag_ = ((value & 0x80) == 0x80);  // old bit 7
+	zero_flag_ = (result == 0);  // is result 0?
+	negative_flag_ = ((result & 0x80) == 0x80);  // new bit 7 (old bit 6)
+
+	return result;
 }
 		
 

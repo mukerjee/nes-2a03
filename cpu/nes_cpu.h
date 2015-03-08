@@ -55,14 +55,25 @@ class NesCpu {
 		bool negative_flag_;
 
 
-		/*************** OP CODES ***************/
+		/*************** EXECUTION ***************/
+
+
+
+		/*************** INSTRUCTIONS ***************/
+		/* Group 1: operate on accumulator */
 		void adc(uint8_t value);
 		void lda(uint8_t value);
 		void AND(uint8_t value);
-		void asl(uint8_t value);
+
+		/* Group 2: operate on accumulator or memory (read/modify/write) */
+		// TODO: the execution function needs to take the return value and assign it either to memory or accumulator
+		uint8_t asl(uint8_t value);
+
+		/* Group 3 */
 
 
 		/*************** ADDRESSING MODES ***************/
+		// TODO: make these return address; get value in execution wrapper function?
 		inline uint8_t immediate(uint8_t constant);
 		inline uint8_t zero_page(uint8_t address);
 		inline uint8_t zero_page_x(uint8_t address);
