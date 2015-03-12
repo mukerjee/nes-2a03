@@ -62,8 +62,12 @@ class NesCpu {
 		/*************** INSTRUCTIONS ***************/
 		/* Group 1: operate on accumulator */
 		void adc(uint8_t value);
-		void lda(uint8_t value);
 		void AND(uint8_t value);
+		void cmp(uint8_t value);
+		void eor(uint8_t value);
+		void lda(uint8_t value);
+		void ora(uint8_t value);
+		void sbc(uint8_t value);
 
 		/* Group 2: operate on accumulator or memory (read/modify/write) */
 		// TODO: the execution function needs to take the return value and assign it either to memory or accumulator

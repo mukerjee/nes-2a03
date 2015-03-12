@@ -9,16 +9,9 @@ NesCpu::NesCpu() {
 	// TESTING
 	std::cout << "Testing CPU" << std::endl;
 
-	uint8_t result = asl(154);
-	printf("154 shifted is %u\n", result);
+	lda(23);
 	print_state();
-	
-	result = asl(0);
-	printf("0 shifted is %u\n", result);
-	print_state();
-	
-	result = asl(250);
-	printf("250 shifted is %u\n", result);
+	ora(67);
 	print_state();
 }
 
@@ -67,6 +60,31 @@ void NesCpu::AND(uint8_t value) {
 }
 
 /**
+* @brief This instruction compares the contents of the accumulator with another
+*	memory held value and sets the zero and carry flags as appropriate.
+*
+* @param value
+*/
+void NesCpu::cmp(uint8_t value) {
+	carry_flag_ = register_a_ >= value;
+	zero_flag_ = register_a_ == value;
+	negative_flag_ = (((register_a_ - value) & 0x80) == 0x80);  // bit 7 set in difference?
+}
+		
+/**
+* @brief An exclusive OR is performed, bit by bit, on the accumulator contents
+*	using the contents of a byte of memory.
+*
+* @param value
+*/
+void NesCpu::eor(uint8_t value) {
+	register_a_ ^= value;
+
+	zero_flag_ = register_a_ == 0;  // is accumulator 0?
+	negative_flag_ = ((value & 0x80) == 0x80);  // bit 7 set?
+}
+
+/**
 * @brief Loads a byte of memory into the accumulator setting the zero and
 *	negative flags as appropriate.
 *
@@ -78,6 +96,31 @@ void NesCpu::lda(uint8_t value) {
 	zero_flag_ = (register_a_ == 0);  // is accumulator 0?
 	negative_flag_ = ((value & 0x80) == 0x80);  // bit 7 set?
 }
+		
+/**
+* @brief An inclusive OR is performed, bit by bit, on the accumulator contents
+*	using the contents of a byte of memory.
+*
+* @param value
+*/
+void NesCpu::ora(uint8_t value) {
+	register_a_ |= value;
+
+	zero_flag_ = (register_a_ == 0);  // is accumulator 0?
+	negative_flag_ = ((value & 0x80) == 0x80);  // bit 7 set?
+}
+		
+/**
+* @brief This instruction subtracts the contents of a memory location to the
+*	accumulator together with the not of the carry bit. If overflow occurs the
+*	carry bit is clear, this enables multiple byte subtraction to be performed.
+*
+* @param value
+*/
+void NesCpu::sbc(uint8_t value) {
+	// TODO: here
+}
+		
 
 /* GROUP 2 */
 
