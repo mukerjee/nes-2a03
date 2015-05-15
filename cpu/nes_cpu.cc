@@ -41,7 +41,7 @@ void NesCpu::adc(uint8_t value) {
 
     // set if sign of result is different than the sign of both
     // the inputs.
-	overflow_flag_ = (original_a ^ register_a_) & (value ^ register_a_) & 0x80
+	overflow_flag_ = (original_a ^ register_a_) & (value ^ register_a_) & 0x80;
 }
 		
 /**
@@ -50,7 +50,7 @@ void NesCpu::adc(uint8_t value) {
 *
 * @param value
 */
-void NesCpu::and(uint8_t value) {
+void NesCpu::AND(uint8_t value) {
 	register_a_ &= value;
 
 	zero_flag_ = register_a_;
@@ -120,11 +120,11 @@ void NesCpu::beq(uint8_t value) {
 * @param value
 */
 void NesCpu::bit(uint8_t value) {
-    uint8_t result = register_a & value;
+    uint8_t result = register_a_ & value;
     
     zero_flag_ = result;
-    overflow_flag_ == result && 0x40;
-    negative_flag_ == result && 0x80;
+    overflow_flag_ = result & 0x40;
+    negative_flag_ = result & 0x80;
 }
 
 /**
@@ -204,7 +204,7 @@ void NesCpu::bvs(uint8_t value) {
 * @brief Set the carry flag to zero.
 */
 void NesCpu::clc() {
-    cary_flag_ = 0;
+    carry_flag_ = 0;
 }
 
 /**
@@ -239,7 +239,7 @@ void NesCpu::cmp(uint8_t value) {
     uint8_t result = register_a_ - value;
     carry_flag_ = result >= 0;
     zero_flag_ = result;
-    negative_flag == result & 0x80;
+    negative_flag_ = result & 0x80;
 }
 
 /**
@@ -252,7 +252,7 @@ void NesCpu::cpx(uint8_t value) {
     uint8_t result = register_x_ - value;
     carry_flag_ = result >= 0;
     zero_flag_ = result;
-    negative_flag == result & 0x80;
+    negative_flag_ = result & 0x80;
 }
 
 /**
@@ -265,7 +265,7 @@ void NesCpu::cpy(uint8_t value) {
     uint8_t result = register_y_ - value;
     carry_flag_ = result >= 0;
     zero_flag_ = result;
-    negative_flag == result & 0x80;
+    negative_flag_ = result & 0x80;
 }
 
 /**
@@ -278,7 +278,7 @@ void NesCpu::dec(uint16_t address) {
     uint8_t result = memory_->get_byte(address) - 1;
     memory_->set_byte(address, result);
     zero_flag_ = result;
-    negative_flag == result & 0x80;
+    negative_flag_ = result & 0x80;
 }
 
 /**
@@ -288,7 +288,7 @@ void NesCpu::dec(uint16_t address) {
 void NesCpu::dex() {
     register_x_--;
     zero_flag_ = register_x_;
-    negative_flag == register_x_ & 0x80;
+    negative_flag_ = register_x_ & 0x80;
 }
 
 /**
@@ -298,7 +298,7 @@ void NesCpu::dex() {
 void NesCpu::dey() {
     register_y_--;
     zero_flag_ = register_y_;
-    negative_flag == register_y_ & 0x80;
+    negative_flag_ = register_y_ & 0x80;
 }
 
 /**
@@ -310,7 +310,7 @@ void NesCpu::dey() {
 void NesCpu::eor(uint8_t value) {
     register_a_ = register_a_ ^ value;
     zero_flag_ = register_a_;
-    negative_flag == register_a_ & 0x80;
+    negative_flag_ = register_a_ & 0x80;
 }
 
 /**
@@ -323,7 +323,7 @@ void NesCpu::inc(uint16_t address) {
     uint8_t result = memory_->get_byte(address) + 1;
     memory_->set_byte(address, result);
     zero_flag_ = result;
-    negative_flag == result & 0x80;
+    negative_flag_ = result & 0x80;
 }
 
 /**
@@ -333,7 +333,7 @@ void NesCpu::inc(uint16_t address) {
 void NesCpu::inx() {
     register_x_++;
     zero_flag_ = register_x_;
-    negative_flag == register_x_ & 0x80;
+    negative_flag_ = register_x_ & 0x80;
 }
 
 /**
@@ -343,7 +343,7 @@ void NesCpu::inx() {
 void NesCpu::iny() {
     register_y_++;
     zero_flag_ = register_y_;
-    negative_flag == register_y_ & 0x80;
+    negative_flag_ = register_y_ & 0x80;
 }
 
 /**
@@ -492,7 +492,7 @@ void NesCpu::plp() {
 void NesCpu::rol(bool mem, uint16_t address) {
     uint8_t value = mem ? memory_->get_byte(address) : register_a_;
 
-    b_0 = carry_flag_;
+    uint8_t b_0 = carry_flag_;
     carry_flag_ = value & 0x80;
     value <<= 1;
     value |= b_0;
@@ -516,7 +516,7 @@ void NesCpu::rol(bool mem, uint16_t address) {
 void NesCpu::ror(bool mem, uint16_t address) {
     uint8_t value = mem ? memory_->get_byte(address) : register_a_;
 
-    b_7 = carry_flag_;
+    uint8_t b_7 = carry_flag_;
     carry_flag_ = value & 0x01;
     value >>= 1;
     value |= (b_7 << 7);
@@ -567,7 +567,7 @@ void NesCpu::sbc(uint8_t value) {
 
     // set if sign of result is different than the sign of both
     // the inputs.
-	overflow_flag_ = (original_a ^ register_a_) & (value ^ register_a_) & 0x80
+	overflow_flag_ = (original_a ^ register_a_) & (value ^ register_a_) & 0x80;
 }
 
 /**
@@ -588,7 +588,7 @@ void NesCpu::sed() {
 * @brief Set the interrupt disable flag to one.
 */
 void NesCpu::sei() {
-    interrupt_disable_flag_ = 1;
+    interrupt_disable_ = 1;
 }
 
 /**
@@ -596,7 +596,7 @@ void NesCpu::sei() {
 *
 * @param address
 */
-void NesCpu:sta(uint16_t address) {
+void NesCpu::sta(uint16_t address) {
     memory_->set_byte(address, register_a_);
 }
 
@@ -605,7 +605,7 @@ void NesCpu:sta(uint16_t address) {
 *
 * @param address
 */
-void NesCpu:stx(uint16_t address) {
+void NesCpu::stx(uint16_t address) {
     memory_->set_byte(address, register_x_);
 }
 
@@ -614,7 +614,7 @@ void NesCpu:stx(uint16_t address) {
 *
 * @param address
 */
-void NesCpu:sty(uint16_t address) {
+void NesCpu::sty(uint16_t address) {
     memory_->set_byte(address, register_y_);
 }
 
@@ -622,7 +622,7 @@ void NesCpu:sty(uint16_t address) {
 * @brief Copies the current contents of the accumulator into the X register and
 * sets the zero and negative flags as appropriate.
 */
-void NesCpu:tax() {
+void NesCpu::tax() {
     register_x_ = register_a_;
 
     zero_flag_ = register_x_;
@@ -633,7 +633,7 @@ void NesCpu:tax() {
 * @brief Copies the current contents of the accumulator into the Y register and
 * sets the zero and negative flags as appropriate.
 */
-void NesCpu:tay() {
+void NesCpu::tay() {
     register_x_ = register_a_;
 
     zero_flag_ = register_y_;
@@ -644,7 +644,7 @@ void NesCpu:tay() {
 * @brief Copies the current contents of the stack register into the X register
 * and sets the zero and negative flags as appropriate.
 */
-void NesCpu:tsx() {
+void NesCpu::tsx() {
     register_x_ = register_s_;
 
     zero_flag_ = register_x_;
@@ -655,7 +655,7 @@ void NesCpu:tsx() {
 * @brief Copies the current contents of the X register into the accumulator and
 * sets the zero and negative flags as appropriate.
 */
-void NesCpu:txa() {
+void NesCpu::txa() {
     register_a_ = register_x_;
 
     zero_flag_ = register_a_;
@@ -665,7 +665,7 @@ void NesCpu:txa() {
 /**
 * @brief Copies the current contents of the X register into the stack register.
 */
-void NesCpu:txs() {
+void NesCpu::txs() {
     register_s_ = register_x_;
 }
 
@@ -673,7 +673,7 @@ void NesCpu:txs() {
 * @brief Copies the current contents of the Y register into the accumulator and
 * sets the zero and negative flags as appropriate.
 */
-void NesCpu:tya() {
+void NesCpu::tya() {
     register_a_ = register_y_;
 
     zero_flag_ = register_a_;
@@ -729,11 +729,11 @@ uint8_t NesCpu::get_processor_status() {
     status += carry_flag_;
     status += zero_flag_ << 1;
     status += interrupt_disable_ << 2;
-    status += decimal_mode_ << 3;
+    status += decimal_mode_flag_ << 3;
     status += break_command_ << 4;
     status += 1 << 5;
     status += overflow_flag_ << 6;
-    stauts += negative_flag_ << 7;
+    status += negative_flag_ << 7;
     return status;
 }
 		
@@ -869,7 +869,7 @@ uint8_t NesCpu::absolute_y(uint16_t address) {
 * @return 
 */
 uint8_t NesCpu::indirect(uint16_t address_location) {
-	return memory_->get_byte(calculate_indirect_address(address_location));
+	return memory_->get_byte(memory_->get_word(address_location));
 }
 		
 /**

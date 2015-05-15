@@ -53,7 +53,7 @@ class NesCpu {
 
 		/*************** INSTRUCTIONS ***************/
 		void adc(uint8_t value);
-		void and(uint8_t value);
+		void AND(uint8_t value);
 		void asl(bool mem, uint16_t address);
         void bcc(uint8_t value);
         void bcs(uint8_t value);
@@ -120,7 +120,7 @@ class NesCpu {
 		inline uint8_t zero_page(uint8_t address);
 		inline uint8_t zero_page_x(uint8_t address);
 		inline uint8_t zero_page_y(uint8_t address);
-		inline uint8_t relative(uint8_t offset):
+		inline uint8_t relative(uint8_t offset);
 		inline uint8_t absolute(uint16_t address);
 		inline uint8_t absolute_x(uint16_t address);
 		inline uint8_t absolute_y(uint16_t address);
