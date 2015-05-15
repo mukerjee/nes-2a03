@@ -47,7 +47,11 @@ class NesCpu {
 		bool negative_flag_;
 
 
-		/*************** OP CODES ***************/
+		/*************** EXECUTION ***************/
+
+
+
+		/*************** INSTRUCTIONS ***************/
 		void adc(uint8_t value);
 		void and(uint8_t value);
 		void asl(bool mem, uint16_t address);
@@ -122,11 +126,7 @@ class NesCpu {
 		inline uint8_t absolute_y(uint16_t address);
 		inline uint8_t indirect(uint16_t address_location);
 		inline uint8_t indexed_indirect(uint16_t address_location);
-		inline uint8_t indirect_indexed(uint16_t address_location);
-
-		// helper function for indirect addressing modes
-		inline uint16_t calculate_indirect_address(uint16_t address_location);
-		
+		inline uint8_t indirect_indexed(uint16_t address_location);		
 
 		/*************** TESTING ***************/
 		void print_state();

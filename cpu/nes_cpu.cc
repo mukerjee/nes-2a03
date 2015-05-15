@@ -9,15 +9,9 @@ NesCpu::NesCpu() {
 	// TESTING
 	std::cout << "Testing CPU" << std::endl;
 
-	lda(120);
+	lda(23);
 	print_state();
-	adc(4);
-	print_state();
-	adc(4);
-	print_state();
-	adc(4);
-	print_state();
-	adc(150);
+	ora(67);
 	print_state();
 }
 
@@ -26,9 +20,9 @@ NesCpu::~NesCpu() {
 }
 		
 
-/*************** OP CODES ***************/
+/*************** INSTRUCTIONS ***************/
 // Descriptions from: http://www.obelisk.demon.co.uk/6502/reference.html
-		
+
 /**
 * @brief This instruction adds the contents of a memory location to the
 *	accumulator together with the carry bit. If overflow occurs the carry bit is
@@ -64,11 +58,8 @@ void NesCpu::and(uint8_t value) {
 }
 
 /**
-* @brief This operation shifts all the bits of the accumulator or memory
-*	contents one bit left. Bit 0 is set to 0 and bit 7 is placed in the carry flag.
-*	The effect of this operation is to multiply the memory contents by 2 (ignoring
-*	2's complement considerations), setting the carry if the result will not fit in
-*	8 bits.
+* @brief This instruction compares the contents of the accumulator with another
+*	memory held value and sets the zero and carry flags as appropriate.
 *
 * @param mem, address
 */
@@ -745,7 +736,6 @@ uint8_t NesCpu::get_processor_status() {
     stauts += negative_flag_ << 7;
     return status;
 }
-
 		
 /*************** ADDRESSING MODES ***************/
 // Descriptions from: http://www.obelisk.demon.co.uk/6502/addressing.html
