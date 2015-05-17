@@ -16,7 +16,15 @@ NesMemory::~NesMemory() {
 * @param byte Value to write
 */
 void NesMemory::set_byte(const uint16_t addr, const uint8_t byte) {
-	memory_[addr] = byte;
+    if (addr < 0x2000) { // mirroring
+        uint16_t base_addr = addr % 0x0800;
+        memory_[base_addr] = byte;
+        memory_[base_addr + 0x0800] = byte;
+        memory_[base_addr + 0x1000] = byte;
+        memory_[base_addr + 0x1800] = byte;
+    } else {
+        memory_[addr] = byte;
+    }
 }
 
 /**

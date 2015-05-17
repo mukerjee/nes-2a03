@@ -18,7 +18,561 @@ NesCpu::NesCpu() {
 NesCpu::~NesCpu() {
 	delete memory_;
 }
-		
+
+/*************** EXECUTION ***************/
+/**
+* @brief loop through all instructions, executing them in sequence.
+*/
+void NesCpu::cpu_loop() {
+    uint8_t cycles;
+    for(;;) {
+        uint8_t opcode = memory_->get_byte(register_pc_++);
+    
+        cycles = run_instruction(opcode);
+    }
+}
+
+// returns how many cycles this instruction took
+/**
+* @brief runs an instruction given an opcode and returns the number of 6502
+* cycles it took to run that instruction.
+*
+* @param opcode
+*
+* @return
+*/
+uint8_t NesCpu::run_instruction(uint8_t opcode) {
+    uint16_t addr;
+    switch(opcode) {
+    case 0x69: // immediate
+        adc(immediate());
+        return 2;
+    case 0x65:
+        adc(zero_page());
+        return 3;
+    case 0x75:
+        adc(zero_page_x());
+        return 4;
+    case 0x6D:
+        adc(absolute());
+        return 4;
+    case 0x7D:
+        addr = absolute_x();
+        adc(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+    case 0x79:
+        addr = absolute_y();
+        adc(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+    case 0x61:
+        adc(indexed_indirect());
+        return 6;
+    case 0x71:
+        addr = indirect_indexed();
+        adc(addr);
+        return (addr % 0x100 == 0xFF) ? 6 : 5;
+
+    case 0x29:
+        AND(immediate());
+        return 2;
+    case 0x25:
+        AND(zero_page());
+        return 3;
+    case 0x35:
+        AND(zero_page_x());
+        return 4;
+    case 0x2D:
+        AND(absolute());
+        return 4;
+    case 0x3D:
+        addr = absolute_x();
+        AND(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+    case 0x39:
+        addr = absolute_y();
+        AND(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+    case 0x21:
+        AND(indexed_indirect());
+        return 6;
+    case 0x31:
+        addr = indirect_indexed();
+        AND(addr);
+        return (addr % 0x100 == 0xFF) ? 6 : 5;
+
+    case 0x0A: // accumulator
+        asl();
+        return 2;
+    case 0x06:
+        asl(zero_page());
+        return 5;
+    case 0x16:
+        asl(zero_page_x());
+        return 6;
+    case 0x0E:
+        asl(absolute());
+        return 6;
+    case 0x1E:
+        asl(absolute_x());
+        return 7;
+
+    case 0x90:
+        return 2 + bcc(relative());
+
+    case 0xB0:
+        return 2 + bcs(relative());
+
+    case 0xF0:
+        return 2 + beq(relative());
+
+    case 0x24:
+        bit(zero_page());
+        return 3;
+    case 0x2C:
+        bit(absolute());
+        return 4;
+        
+    case 0x30:
+        return 2 + bmi(relative());
+
+    case 0xD0:
+        return 2 + bne(relative());
+
+    case 0x10:
+        return 2 + bpl(relative());
+
+    case 0x00:
+        brk();
+        return 7;
+
+    case 0x50:
+        return 2 + bvc(relative());
+
+    case 0x70:
+        return 2 + bvs(relative());
+
+    case 0x18:
+        clc();
+        return 2;
+
+    case 0xD8:
+        cld();
+        return 2;
+
+    case 0x58:
+        cli();
+        return 2;
+
+    case 0xB8:
+        clv();
+        return 2;
+
+    case 0xC9:
+        cmp(immediate());
+        return 2;
+    case 0xC5:
+        cmp(zero_page());
+        return 3;
+    case 0xD5:
+        cmp(zero_page_x());
+        return 4;
+    case 0xCD:
+        cmp(absolute());
+        return 4;
+    case 0xDD:
+        addr = absolute_x();
+        cmp(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+    case 0xD9:
+        addr = absolute_y();
+        cmp(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+    case 0xC1:
+        cmp(indexed_indirect());
+        return 6;
+    case 0xD1:
+        addr = indirect_indexed();
+        cmp(addr);
+        return (addr % 0x100 == 0xFF) ? 6 : 5;
+
+    case 0xE0:
+        cpx(immediate());
+        return 2;
+    case 0xE4:
+        cpx(zero_page());
+        return 3;
+    case 0xEC:
+        cpx(absolute());
+        return 4;
+
+    case 0xC0:
+        cpy(immediate());
+        return 2;
+    case 0xC4:
+        cpy(zero_page());
+        return 3;
+    case 0xCC:
+        cpy(absolute());
+        return 4;
+
+    case 0xC6:
+        dec(zero_page());
+        return 5;
+    case 0xD6:
+        dec(zero_page_x());
+        return 6;
+    case 0xCE:
+        dec(absolute());
+        return 6;
+    case 0xDE:
+        dec(absolute_x());
+        return 7;
+
+    case 0xCA:
+        dex();
+        return 2;
+
+    case 0x88:
+        dey();
+        return 2;
+
+    case 0x49:
+        eor(immediate());
+        return 2;
+    case 0x45:
+        eor(zero_page());
+        return 3;
+    case 0x55:
+        eor(zero_page_x());
+        return 4;
+    case 0x4D:
+        eor(absolute());
+        return 4;
+    case 0x5D:
+        addr = absolute_x();
+        eor(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+    case 0x59:
+        addr = absolute_y();
+        eor(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+    case 0x41:
+        eor(indexed_indirect());
+        return 6;
+    case 0x51:
+        addr = indirect_indexed();
+        eor(addr);
+        return (addr % 0x100 == 0xFF) ? 6 : 5;
+
+    case 0xE6:
+        inc(zero_page());
+        return 5;
+    case 0xF6:
+        inc(zero_page_x());
+        return 6;
+    case 0xEE:
+        inc(absolute());
+        return 6;
+    case 0xFE:
+        inc(absolute_x());
+        return 7;
+
+    case 0xE8:
+        inx();
+        return 2;
+
+    case 0xC8:
+        iny();
+        return 2;
+
+    case 0x4C:
+        jmp(absolute());
+        return 3;
+    case 0x6C:
+        jmp(indirect());
+        return 5;
+
+    case 0x20:
+        jsr(absolute());
+        return 6;
+
+    case 0xA9:
+        lda(immediate());
+        return 2;
+    case 0xA5:
+        lda(zero_page());
+        return 3;
+    case 0xB5:
+        lda(zero_page_x());
+        return 4;
+    case 0xAD:
+        lda(absolute());
+        return 4;
+    case 0xBD:
+        addr = absolute_x();
+        lda(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+    case 0xB9:
+        addr = absolute_y();
+        lda(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+    case 0xA1:
+        lda(indexed_indirect());
+        return 6;
+    case 0xB1:
+        addr = indirect_indexed();
+        lda(addr);
+        return (addr % 0x100 == 0xFF) ? 6 : 5;
+
+    case 0xA2:
+        ldx(immediate());
+        return 2;
+    case 0xA6:
+        ldx(zero_page());
+        return 3;
+    case 0xB6:
+        ldx(zero_page_y());
+        return 4;
+    case 0xAE:
+        ldx(absolute());
+        return 4;
+    case 0xBE:
+        addr = absolute_y();
+        ldx(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+
+    case 0xA0:
+        ldy(immediate());
+        return 2;
+    case 0xA4:
+        ldy(zero_page());
+        return 3;
+    case 0xB4:
+        ldy(zero_page_x());
+        return 4;
+    case 0xAC:
+        ldy(absolute());
+        return 4;
+    case 0xBC:
+        addr = absolute_x();
+        ldy(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+
+    case 0x4A: // accumulator
+        lsr();
+        return 2;
+    case 0x46:
+        lsr(zero_page());
+        return 5;
+    case 0x56:
+        lsr(zero_page_x());
+        return 6;
+    case 0x4E:
+        lsr(absolute());
+        return 6;
+    case 0x5E:
+        lsr(absolute_x());
+        return 7;
+
+    case 0xEA:
+        nop();
+        return 2;
+
+    case 0x09:
+        ora(immediate());
+        return 2;
+    case 0x05:
+        ora(zero_page());
+        return 3;
+    case 0x15:
+        ora(zero_page_x());
+        return 4;
+    case 0x0D:
+        ora(absolute());
+        return 4;
+    case 0x1D:
+        addr = absolute_x();
+        ora(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+    case 0x19:
+        addr = absolute_y();
+        ora(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+    case 0x01:
+        ora(indexed_indirect());
+        return 6;
+    case 0x11:
+        addr = indirect_indexed();
+        ora(addr);
+        return (addr % 0x100 == 0xFF) ? 6 : 5;
+        
+    case 0x48:
+        pha();
+        return 3;
+
+    case 0x08:
+        php();
+        return 3;
+
+    case 0x68:
+        pla();
+        return 4;
+        
+    case 0x28:
+        plp();
+        return 4;
+
+    case 0x2A: // accumulator
+        rol();
+        return 2;
+    case 0x26:
+        rol(zero_page());
+        return 5;
+    case 0x36:
+        rol(zero_page_x());
+        return 6;
+    case 0x2E:
+        rol(absolute());
+        return 6;
+    case 0x3E:
+        rol(absolute_x());
+        return 7;
+
+    case 0x6A: // accumulator
+        ror();
+        return 2;
+    case 0x66:
+        ror(zero_page());
+        return 5;
+    case 0x76:
+        ror(zero_page_x());
+        return 6;
+    case 0x6E:
+        ror(absolute());
+        return 6;
+    case 0x7E:
+        ror(absolute_x());
+        return 7;
+
+    case 0x40:
+        rti();
+        return 6;
+
+    case 0x60:
+        rts();
+        return 6;
+
+    case 0xE9:
+        sbc(immediate());
+        return 2;
+    case 0xE5:
+        sbc(zero_page());
+        return 3;
+    case 0xF5:
+        sbc(zero_page_x());
+        return 4;
+    case 0xED:
+        sbc(absolute());
+        return 4;
+    case 0xFD:
+        addr = absolute_x();
+        sbc(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+    case 0xF9:
+        addr = absolute_y();
+        sbc(addr);
+        return (addr % 0x100 == 0xFF) ? 5 : 4;
+    case 0xE1:
+        sbc(indexed_indirect());
+        return 6;
+    case 0xF1:
+        addr = indirect_indexed();
+        sbc(addr);
+        return (addr % 0x100 == 0xFF) ? 6 : 5;
+
+    case 0x38:
+        sec();
+        return 2;
+
+    case 0xF8:
+        sed();
+        return 2;
+
+    case 0x78:
+        sei();
+        return 2;
+
+    case 0x85:
+        sta(zero_page());
+        return 3;
+    case 0x95:
+        sta(zero_page_x());
+        return 4;
+    case 0x8D:
+        sta(absolute());
+        return 4;
+    case 0x9D:
+        sta(absolute_x());
+        return 5;
+    case 0x99:
+        sta(absolute_y());
+        return 5;
+    case 0x81:
+        sta(indexed_indirect());
+        return 6;
+    case 0x91:
+        sta(indirect_indexed());
+        return 6;
+
+    case 0x86:
+        stx(zero_page());
+        return 3;
+    case 0x96:
+        stx(zero_page_y());
+        return 4;
+    case 0x8E:
+        stx(absolute());
+        return 4;
+
+    case 0x84:
+        sty(zero_page());
+        return 3;
+    case 0x94:
+        sty(zero_page_x());
+        return 4;
+    case 0x8C:
+        sty(absolute());
+        return 4;
+
+    case 0xAA:
+        tax();
+        return 2;
+
+    case 0xA8:
+        tay();
+        return 2;
+
+    case 0xBA:
+        tsx();
+        return 2;
+
+    case 0x8A:
+        txa();
+        return 2;
+
+    case 0x9A:
+        txs();
+        return 2;
+
+    case 0x98:
+        tya();
+        return 2;
+
+    default:
+        printf("bad opcode!\n");
+    }
+    return 0;
+}	
 
 /*************** INSTRUCTIONS ***************/
 // Descriptions from: http://www.obelisk.demon.co.uk/6502/reference.html
@@ -28,9 +582,10 @@ NesCpu::~NesCpu() {
 *	accumulator together with the carry bit. If overflow occurs the carry bit is
 *	set, this enables multiple byte addition to be performed.
 *
-* @param value
+* @param address
 */
-void NesCpu::adc(uint8_t value) {
+void NesCpu::adc(uint16_t address) {
+    uint8_t value = memory_->get_byte(address);
 	uint8_t original_a = register_a_;
     uint16_t result = register_a_ + value + carry_flag_;
     register_a_= (uint8_t)(result & 0xFF);
@@ -48,9 +603,10 @@ void NesCpu::adc(uint8_t value) {
 * @brief A logical AND is performed, bit by bit, on the accumulator contents
 *	using the contents of a byte of memory.
 *
-* @param value
+* @param address
 */
-void NesCpu::AND(uint8_t value) {
+void NesCpu::AND(uint16_t address) {
+    uint8_t value = memory_->get_byte(address);
 	register_a_ &= value;
 
 	zero_flag_ = register_a_;
@@ -61,18 +617,27 @@ void NesCpu::AND(uint8_t value) {
 * @brief This instruction compares the contents of the accumulator with another
 *	memory held value and sets the zero and carry flags as appropriate.
 *
-* @param mem, address
+* @param address
 */
-void NesCpu::asl(bool mem, uint16_t address) {
-    uint8_t value = mem ? memory_->get_byte(address) : register_a_;
+void NesCpu::asl(uint16_t address) { // memory version
+    uint8_t value = memory_->get_byte(address);
 
     carry_flag_ = value & 0x80;
     value <<= 1;
 
-    if (mem)
-        memory_->set_byte(address, value);        
-    else
-        register_a_ = value;
+    memory_->set_byte(address, value);        
+
+    zero_flag_ = register_a_; // not value
+    negative_flag_ = value & 0x80;
+}
+
+void NesCpu::asl() { // accumulator version
+    uint8_t value = register_a_;
+
+    carry_flag_ = value & 0x80;
+    value <<= 1;
+
+    register_a_ = value;
 
     zero_flag_ = register_a_; // not value
     negative_flag_ = value & 0x80;
@@ -82,33 +647,51 @@ void NesCpu::asl(bool mem, uint16_t address) {
 * @brief If the carry flag is clear then add the relative displacement to the
 * program counter to cause a branch to a new location.
 *
-* @param value
+* @param address
+*
+* @return
 */
-void NesCpu::bcc(uint8_t value) {
-    if (!carry_flag_)
-        register_pc_ += (int8_t)value;
+uint8_t NesCpu::bcc(uint16_t address) {
+    if (!carry_flag_) {
+        uint8_t old_page = register_pc_ >> 8;
+        register_pc_ += (int8_t)memory_->get_byte(address);
+        return 1 + abs(old_page - (register_pc_ >> 8));
+    }
+    return 0;
 }
 
 /**
 * @brief If the carry flag is set then add the relative displacement to the
 * program counter to cause a branch to a new location.
 *
-* @param value
+* @param address
+*
+* @return
 */
-void NesCpu::bcs(uint8_t value) {
-    if (carry_flag_)
-        register_pc_ += (int8_t)value;
+uint8_t NesCpu::bcs(uint16_t address) {
+    if (carry_flag_) {
+        uint8_t old_page = register_pc_ >> 8;
+        register_pc_ += (int8_t)memory_->get_byte(address);
+        return 1 + abs(old_page - (register_pc_ >> 8));
+    }
+    return 0;
 }
 
 /**
 * @brief If the zero flag is set then add the relative displacement to the
 * program counter to cause a branch to a new location.
 *
-* @param value
+* @param address
+*
+* @return
 */
-void NesCpu::beq(uint8_t value) {
-    if (zero_flag_)
-        register_pc_ += (int8_t)value;
+uint8_t NesCpu::beq(uint16_t address) {
+    if (zero_flag_) {
+        uint8_t old_page = register_pc_ >> 8;
+        register_pc_ += (int8_t)memory_->get_byte(address);
+        return 1 + abs(old_page - (register_pc_ >> 8));
+    }
+    return 0;
 }
 
 /**
@@ -117,10 +700,10 @@ void NesCpu::beq(uint8_t value) {
 * memory to set or clear the zero flag, but the result is not kept. Bits 7 and 6
 * of the value from memory are copied into the N and V flags.
 *
-* @param value
+* @param address
 */
-void NesCpu::bit(uint8_t value) {
-    uint8_t result = register_a_ & value;
+void NesCpu::bit(uint16_t address) {
+    uint8_t result = register_a_ & memory_->get_byte(address);
     
     zero_flag_ = result;
     overflow_flag_ = result & 0x40;
@@ -131,33 +714,51 @@ void NesCpu::bit(uint8_t value) {
 * @brief If the negative flag is set then add the relative displacement to the
 * program counter to cause a branch to a new location.
 *
-* @param value
+* @param address
+*
+* @return
 */
-void NesCpu::bmi(uint8_t value) {
-    if (negative_flag_)
-        register_pc_ += (int8_t)value;
+uint8_t NesCpu::bmi(uint16_t address) {
+    if (negative_flag_) {
+        uint8_t old_page = register_pc_ >> 8;
+        register_pc_ += (int8_t)memory_->get_byte(address);
+        return 1 + abs(old_page - (register_pc_ >> 8));
+    }
+    return 0;
 }
 
 /**
 * @brief If the zero flag is clear then add the relative displacement to the
 * program counter to cause a branch to a new location.
 *
-* @param value
+* @param address
+*
+* @return
 */
-void NesCpu::bne(uint8_t value) {
-    if (!zero_flag_)
-        register_pc_ += (int8_t)value;
+uint8_t NesCpu::bne(uint16_t address) {
+    if (!zero_flag_) {
+        uint8_t old_page = register_pc_ >> 8;
+        register_pc_ += (int8_t)memory_->get_byte(address);
+        return 1 + abs(old_page - (register_pc_ >> 8));
+    }
+    return 0;
 }
 
 /**
 * @brief If the negative flag is clear then add the relative displacement to the
 * program counter to cause a branch to a new location.
 *
-* @param value
+* @param address
+*
+* @return
 */
-void NesCpu::bpl(uint8_t value) {
-    if (!negative_flag_)
-        register_pc_ += (int8_t)value;
+uint8_t NesCpu::bpl(uint16_t address) {
+    if (!negative_flag_) {
+        uint8_t old_page = register_pc_ >> 8;
+        register_pc_ += (int8_t)memory_->get_byte(address);
+        return 1 + abs(old_page - (register_pc_ >> 8));
+    }
+    return 0;
 }
 
 /**
@@ -182,22 +783,34 @@ void NesCpu::brk() {
 * @brief If the overflow flag is clear then add the relative displacement to the
 * program counter to cause a branch to a new location.
 *
-* @param value
+* @param address
+*
+* @return
 */
-void NesCpu::bvc(uint8_t value) {
-    if (!overflow_flag_)
-        register_pc_ += (int8_t)value;
+uint8_t NesCpu::bvc(uint16_t address) {
+    if (!overflow_flag_) {
+        uint8_t old_page = register_pc_ >> 8;
+        register_pc_ += (int8_t)memory_->get_byte(address);
+        return 1 + abs(old_page - (register_pc_ >> 8));
+    }
+    return 0;
 }
 
 /**
 * @brief If the overflow flag is set then add the relative displacement to the
 * program counter to cause a branch to a new location.
 *
-* @param value
+* @param address
+*
+* @return
 */
-void NesCpu::bvs(uint8_t value) {
-    if (overflow_flag_)
-        register_pc_ += (int8_t)value;
+uint8_t NesCpu::bvs(uint16_t address) {
+    if (overflow_flag_) {
+        uint8_t old_page = register_pc_ >> 8;
+        register_pc_ += (int8_t)memory_->get_byte(address);
+        return 1 + abs(old_page - (register_pc_ >> 8));
+    }
+    return 0;
 }
 
 /**
@@ -233,10 +846,10 @@ void NesCpu::clv() {
 * @brief This instruction compares the contents of the accumulator with another
 * memory held value and sets the zero and carry flags as appropriate.
 *
-* @param value
+* @param address
 */
-void NesCpu::cmp(uint8_t value) {
-    uint8_t result = register_a_ - value;
+void NesCpu::cmp(uint16_t address) {
+    uint8_t result = register_a_ - memory_->get_byte(address);
     carry_flag_ = result >= 0;
     zero_flag_ = result;
     negative_flag_ = result & 0x80;
@@ -246,10 +859,10 @@ void NesCpu::cmp(uint8_t value) {
 * @brief This instruction compares the contents of the X register with another
 * memory held value and sets the zero and carry flags as appropriate.
 *
-* @param value
+* @param address
 */
-void NesCpu::cpx(uint8_t value) {
-    uint8_t result = register_x_ - value;
+void NesCpu::cpx(uint16_t address) {
+    uint8_t result = register_x_ - memory_->get_byte(address);
     carry_flag_ = result >= 0;
     zero_flag_ = result;
     negative_flag_ = result & 0x80;
@@ -259,10 +872,10 @@ void NesCpu::cpx(uint8_t value) {
 * @brief This instruction compares the contents of the Y register with another
 * memory held value and sets the zero and carry flags as appropriate.
 *
-* @param value
+* @param address
 */
-void NesCpu::cpy(uint8_t value) {
-    uint8_t result = register_y_ - value;
+void NesCpu::cpy(uint16_t address) {
+    uint8_t result = register_y_ - memory_->get_byte(address);
     carry_flag_ = result >= 0;
     zero_flag_ = result;
     negative_flag_ = result & 0x80;
@@ -272,7 +885,7 @@ void NesCpu::cpy(uint8_t value) {
 * @brief Subtracts one from the value held at a specified memory location
 * setting the zero and negative flags as appropriate.
 *
-* @param value
+* @param address
 */
 void NesCpu::dec(uint16_t address) {
     uint8_t result = memory_->get_byte(address) - 1;
@@ -305,10 +918,10 @@ void NesCpu::dey() {
 * @brief An exclusive OR is performed, bit by bit, on the accumulator contents
 * using the contents of a byte of memory.
 *
-* @param value
+* @param address
 */
-void NesCpu::eor(uint8_t value) {
-    register_a_ = register_a_ ^ value;
+void NesCpu::eor(uint16_t address) {
+    register_a_ = register_a_ ^ memory_->get_byte(address);
     zero_flag_ = register_a_;
     negative_flag_ = register_a_ & 0x80;
 }
@@ -317,7 +930,7 @@ void NesCpu::eor(uint8_t value) {
 * @brief Adds one to the value held at a specified memory location setting the
 * zero and negative flags as appropriate.
 *
-* @param value
+* @param address
 */
 void NesCpu::inc(uint16_t address) {
     uint8_t result = memory_->get_byte(address) + 1;
@@ -372,10 +985,10 @@ void NesCpu::jsr(uint16_t address) {
 * @brief Loads a byte of memory into the accumulator setting the zero and
 *	negative flags as appropriate.
 *
-* @param value
+* @param address
 */
-void NesCpu::lda(uint8_t value) {
-	register_a_ = value;
+void NesCpu::lda(uint16_t address) {
+	register_a_ = memory_->get_byte(address);
 
 	zero_flag_ = register_a_;
 	negative_flag_ = register_a_ & 0x80;
@@ -385,10 +998,10 @@ void NesCpu::lda(uint8_t value) {
 * @brief Loads a byte of memory into the X register setting the zero and
 * negative flags as appropriate.
 *
-* @param value
+* @param address
 */
-void NesCpu::ldx(uint8_t value) {
-	register_x_ = value;
+void NesCpu::ldx(uint16_t address) {
+	register_x_ = memory_->get_byte(address);
 
 	zero_flag_ = register_x_;
 	negative_flag_ = register_x_ & 0x80;
@@ -398,10 +1011,10 @@ void NesCpu::ldx(uint8_t value) {
 * @brief Loads a byte of memory into the Y register setting the zero and
 * negative flags as appropriate.
 *
-* @param value
+* @param address
 */
-void NesCpu::ldy(uint8_t value) {
-	register_y_ = value;
+void NesCpu::ldy(uint16_t address) {
+	register_y_ = memory_->get_byte(address);
 
 	zero_flag_ = register_y_;
 	negative_flag_ = register_y_ & 0x80;
@@ -411,18 +1024,27 @@ void NesCpu::ldy(uint8_t value) {
 * @brief Each of the bits in A or M is shift one place to the right. The bit
 * that was in bit 0 is shifted into the carry flag. Bit 7 is set to zero.
 *
-* @param mem, address
+* @param address
 */
-void NesCpu::lsr(bool mem, uint16_t address) {
-    uint8_t value = mem ? memory_->get_byte(address) : register_a_;
+void NesCpu::lsr(uint16_t address) { // memory version
+    uint8_t value = memory_->get_byte(address);
 
     carry_flag_ = value & 0x01;
     value >>= 1;
 
-    if (mem)
-        memory_->set_byte(address, value);        
-    else
-        register_a_ = value;
+    memory_->set_byte(address, value);        
+
+    zero_flag_ = value; // not just register_a_
+    negative_flag_ = value & 0x80;
+}
+
+void NesCpu::lsr() { // accumulator version
+    uint8_t value = register_a_;
+
+    carry_flag_ = value & 0x01;
+    value >>= 1;
+
+    register_a_ = value;
 
     zero_flag_ = value; // not just register_a_
     negative_flag_ = value & 0x80;
@@ -440,10 +1062,10 @@ void NesCpu::nop() {
 * @brief An inclusive OR is performed, bit by bit, on the accumulator contents
 * using the contents of a byte of memory.
 *
-* @param value
+* @param address
 */
-void NesCpu::ora(uint8_t value) {
-	register_a_ |= value;
+void NesCpu::ora(uint16_t address) {
+	register_a_ |= memory_->get_byte(address);
 
 	zero_flag_ = register_a_;
 	negative_flag_ = register_a_ & 0x80;
@@ -487,20 +1109,31 @@ void NesCpu::plp() {
 * filled with the current value of the carry flag whilst the old bit 7 becomes
 * the new carry flag value.
 *
-* @param mem, address
+* @param address
 */
-void NesCpu::rol(bool mem, uint16_t address) {
-    uint8_t value = mem ? memory_->get_byte(address) : register_a_;
+void NesCpu::rol(uint16_t address) { // memory version
+    uint8_t value = memory_->get_byte(address);
 
     uint8_t b_0 = carry_flag_;
     carry_flag_ = value & 0x80;
     value <<= 1;
     value |= b_0;
 
-    if (mem)
-        memory_->set_byte(address, value);        
-    else
-        register_a_ = value;
+    memory_->set_byte(address, value);
+
+    zero_flag_ = register_a_; // not value
+    negative_flag_ = value & 0x80;
+}
+
+void NesCpu::rol() { // accumulator version
+    uint8_t value = register_a_;
+
+    uint8_t b_0 = carry_flag_;
+    carry_flag_ = value & 0x80;
+    value <<= 1;
+    value |= b_0;
+
+    register_a_ = value;
 
     zero_flag_ = register_a_; // not value
     negative_flag_ = value & 0x80;
@@ -511,20 +1144,31 @@ void NesCpu::rol(bool mem, uint16_t address) {
 * filled with the current value of the carry flag whilst the old bit 0 becomes
 * the new carry flag value.
 *
-* @param mem, address
+* @param address
 */
-void NesCpu::ror(bool mem, uint16_t address) {
-    uint8_t value = mem ? memory_->get_byte(address) : register_a_;
+void NesCpu::ror(uint16_t address) {
+    uint8_t value = memory_->get_byte(address);
 
     uint8_t b_7 = carry_flag_;
     carry_flag_ = value & 0x01;
     value >>= 1;
     value |= (b_7 << 7);
 
-    if (mem)
-        memory_->set_byte(address, value);        
-    else
-        register_a_ = value;
+    memory_->set_byte(address, value);        
+
+    zero_flag_ = register_a_; // not value
+    negative_flag_ = value & 0x80;
+}
+
+void NesCpu::ror() { // accumulator version
+    uint8_t value = register_a_;
+
+    uint8_t b_7 = carry_flag_;
+    carry_flag_ = value & 0x01;
+    value >>= 1;
+    value |= (b_7 << 7);
+
+    register_a_ = value;
 
     zero_flag_ = register_a_; // not value
     negative_flag_ = value & 0x80;
@@ -555,9 +1199,10 @@ void NesCpu::rts() {
 * accumulator together with the not of the carry bit. If overflow occurs the
 * carry bit is clear, this enables multiple byte subtraction to be performed.
 *
-* @param value
+* @param address
 */
-void NesCpu::sbc(uint8_t value) {
+void NesCpu::sbc(uint16_t address) {
+    uint8_t value = memory_->get_byte(address);
 	uint8_t original_a = register_a_;
     register_a_ = register_a_ - value - (1 - carry_flag_);
 
@@ -745,12 +1390,10 @@ uint8_t NesCpu::get_processor_status() {
 *	bit constant within the instruction. It is indicated by a '#' symbol followed
 *	by an numeric expression.
 *
-* @param constant
-*
 * @return 
 */
-uint8_t NesCpu::immediate(uint8_t constant) {
-	return constant;
+uint16_t NesCpu::immediate() {
+    return register_pc_++;
 }
 		
 /**
@@ -761,12 +1404,10 @@ uint8_t NesCpu::immediate(uint8_t constant) {
 *	is held in the instruction making it shorter by one byte (important for space
 *	saving) and one less memory fetch during execution (important for speed).
 *
-* @param address
-*
 * @return 
 */
-uint8_t NesCpu::zero_page(uint8_t address) {
-	return memory_->get_byte(address);
+uint16_t NesCpu::zero_page() {
+	return memory_->get_byte(register_pc_++);
 }
 		
 /**
@@ -776,12 +1417,10 @@ uint8_t NesCpu::zero_page(uint8_t address) {
 *	if the X register contains $0F and the instruction LDA $80,X is executed then
 *	the accumulator will be loaded from $008F (e.g. $80 + $0F => $8F).
 *
-* @param address
-*
 * @return 
 */
-uint8_t NesCpu::zero_page_x(uint8_t address) {
-	return memory_->get_byte(address + register_x_);
+uint16_t NesCpu::zero_page_x() {
+	return (memory_->get_byte(register_pc_++) + register_x_) % 0x100;
 }
 		
 /**
@@ -790,12 +1429,10 @@ uint8_t NesCpu::zero_page_x(uint8_t address) {
 *	instruction and adding the current value of the Y register to it. This mode can
 *	only be used with the LDX and STX instructions.
 *
-* @param address
-*
 * @return 
 */
-uint8_t NesCpu::zero_page_y(uint8_t address) {
-	return memory_->get_byte(address + register_y_);
+uint16_t NesCpu::zero_page_y() {
+	return (memory_->get_byte(register_pc_++) + register_y_) % 0x100;
 }
 
 /**
@@ -806,24 +1443,22 @@ uint8_t NesCpu::zero_page_y(uint8_t address) {
 * address range for the target instruction must be with -126 to +129 bytes of
 * the branch.
 *
-* @param offset
-*
 * @return
 */
-uint8_t NesCpu::relative(uint8_t offset) {
-    return offset;
+uint16_t NesCpu::relative() {
+    return register_pc_++;
 }
 		
 /**
 * @brief Instructions using absolute addressing contain a full 16 bit address
 *	to identify the target location.
 *
-* @param address
-*
 * @return 
 */
-uint8_t NesCpu::absolute(uint16_t address) {
-	return memory_->get_byte(address);
+uint16_t NesCpu::absolute() {
+	uint16_t address = memory_->get_word(register_pc_);
+    register_pc_ += 2;
+    return address;
 }
 		
 /**
@@ -833,12 +1468,12 @@ uint8_t NesCpu::absolute(uint16_t address) {
 *	$92 then an STA $2000,X instruction will store the accumulator at $2092 (e.g.
 *	$2000 + $92).
 *
-* @param address
-*
 * @return 
 */
-uint8_t NesCpu::absolute_x(uint16_t address) {
-	return memory_->get_byte(address + register_x_);
+uint16_t NesCpu::absolute_x() {
+    uint16_t address = memory_->get_word(register_pc_) + register_x_;
+    register_pc_ += 2;
+    return address;
 }
 		
 /**
@@ -846,12 +1481,12 @@ uint8_t NesCpu::absolute_x(uint16_t address) {
 *	previous mode only with the contents of the Y register added to the 16 bit
 *	address from the instruction.
 *
-* @param address
-*
 * @return 
 */
-uint8_t NesCpu::absolute_y(uint16_t address) {
-	return memory_->get_byte(address + register_y_);
+uint16_t NesCpu::absolute_y() {
+    uint16_t address = memory_->get_word(register_pc_) + register_y_;
+    register_pc_ += 2;
+    return address;
 }
 		
 /**
@@ -864,12 +1499,12 @@ uint8_t NesCpu::absolute_y(uint16_t address) {
 *	the instruction JMP ($0120) will cause the next instruction execution to occur
 *	at $BAFC (e.g. the contents of $0120 and $0121).
 *
-* @param address
-*
 * @return 
 */
-uint8_t NesCpu::indirect(uint16_t address_location) {
-	return memory_->get_byte(memory_->get_word(address_location));
+uint16_t NesCpu::indirect() {
+    uint16_t address = memory_->get_word(memory_->get_word(register_pc_));
+    register_pc_ += 2;
+    return address;
 }
 		
 /**
@@ -878,13 +1513,11 @@ uint8_t NesCpu::indirect(uint16_t address_location) {
 *	instruction and the X register added to it (with zero page wrap around) to give
 *	the location of the least significant byte of the target address.
 *
-* @param address
-*
 * @return 
 */
-// TODO: zero page wrap around?
-uint8_t NesCpu::indexed_indirect(uint16_t address_location) {
-	return indirect(address_location + register_x_);
+uint16_t NesCpu::indexed_indirect() {
+    return memory_->get_word((memory_->get_byte(register_pc_++) +
+                              register_x_) % 0x100);
 }
 		
 /**
@@ -893,13 +1526,11 @@ uint8_t NesCpu::indexed_indirect(uint16_t address_location) {
 *	significant byte of 16 bit address. The Y register is dynamically added to this
 *	value to generated the actual target address for operation.
 *
-* @param address
-*
 * @return 
 */
-uint8_t NesCpu::indirect_indexed(uint16_t address_location) {
-	uint16_t actual_addr = memory_->get_word(address_location);
-	return memory_->get_byte(actual_addr + register_y_);
+uint16_t NesCpu::indirect_indexed() {
+    return memory_->get_word(memory_->get_byte(register_pc_++)) +
+        register_y_;
 }		
 
 		
