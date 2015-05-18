@@ -1,7 +1,7 @@
 #ifndef NES_MEMORY_H
 #define NES_MEMORY_H
 
-#define MEM_SIZE 2*16
+#define MEM_SIZE 1<<16
 
 class NesMemory {
 	

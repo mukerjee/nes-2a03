@@ -22,6 +22,10 @@ void NesMemory::set_byte(const uint16_t addr, const uint8_t byte) {
         memory_[base_addr + 0x0800] = byte;
         memory_[base_addr + 0x1000] = byte;
         memory_[base_addr + 0x1800] = byte;
+    } else if (addr >= 0x5FF8 and addr <= 0x5FFF) { // bank switching
+        // TODO
+    } else if (addr >= 0x4000 and addr <= 0x4017) { // APU
+        // TODO
     } else {
         memory_[addr] = byte;
     }

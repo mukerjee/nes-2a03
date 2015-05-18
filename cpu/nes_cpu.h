@@ -1,7 +1,10 @@
 #ifndef NES_CPU_H
 #define NES_CPU_H
 
+#include <unistd.h>
+#include <ctime>
 #include "nes_memory.h"
+#include "../nsf/nsfreader.h"
 
 class NesCpu {
 
@@ -9,22 +12,11 @@ class NesCpu {
 		NesCpu();
 		~NesCpu();
 
-
+        void nsf_init(NSFReader *reader);
+        void cpu_loop();
 
 	private:
-
-		// TODO: make map mapping opcode to <op method, addr mode> tuple
-
-		/* TODO: make function that looks up the opcode in the above map, calls
-		the appropriate addressing mode function to get the data value the op
-		should operate on, and then calls the op.  */
-
-		/* TODO: think about how to handle read/modify/write instructions.
-		Separate set of adressing mode functions? Or they all return address
-		but immediate? Maybe before going any further we need the outer program
-		function; writing it might make the answer obvoius.  */
-		
-		
+        NSFReader *reader_;
 
 		/*************** MEMORY ***************/
 		NesMemory *memory_;
@@ -48,7 +40,6 @@ class NesCpu {
 
 
 		/*************** EXECUTION ***************/
-        void cpu_loop();
         uint8_t run_instruction(uint8_t opcode);
 
 

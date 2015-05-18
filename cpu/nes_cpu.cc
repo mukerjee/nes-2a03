@@ -6,13 +6,13 @@
 NesCpu::NesCpu() {
 	memory_ = new NesMemory();
 
-	// TESTING
-	std::cout << "Testing CPU" << std::endl;
+	// // TESTING
+	// std::cout << "Testing CPU" << std::endl;
 
-	lda(23);
-	print_state();
-	ora(67);
-	print_state();
+	// lda(23);
+	// print_state();
+	// ora(67);
+	// print_state();
 }
 
 NesCpu::~NesCpu() {
@@ -20,6 +20,101 @@ NesCpu::~NesCpu() {
 }
 
 /*************** EXECUTION ***************/
+/**
+* @breif nsf (music file) init
+*/
+void NesCpu::nsf_init(NSFReader *reader) {
+    reader_ = reader;
+
+    // zero memory
+    for(int i = 0; i < 0x0800; i++)
+        memory_->set_byte(i, 0);
+    for(int i = 0x6000; i < 0x8000; i++)
+        memory_->set_byte(i, 0);
+    
+    // initialize audio
+    for(int i = 0x4000; i < 0x4014; i++)
+        memory_->set_byte(i, 0);
+    memory_->set_byte(0x4015, 0x0F);
+
+    // set frame counter to 4-step mode
+    memory_->set_byte(0x4017, 0x40);
+
+    // initialize banks
+    if (reader_->is_bank_switched()) {
+        for(int i = 0; i < 8; i++) {
+            memory_->set_byte(0x5FF8 + i, reader_->bankswitch_init(i));
+        }
+    }
+    
+    // set starting song
+    register_a_ = reader_->starting_song() - 1;
+
+    // determine if pal or ntsc
+    register_x_ = reader_->is_pal();
+
+    // load program
+    if (reader_->is_bank_switched()) { // bank switching
+        uint16_t padding = reader_->data_load_address() & 0x0FFF;
+        uint16_t start_address = 0x8000 + padding;
+        for(int i = 0; i < 8; i++) {
+            for(int j = 0; j < (1 << 12); j++) {
+                memory_->set_byte(start_address + (i * 1<<12) + j,
+                                  reader_->banks(i, j));
+            }
+        }
+    } else { // no bank switching
+        for(int i = reader_->data_load_address(); i < 0xFFFF; i++) {
+            memory_->set_byte(i, reader_->banks(0, i - reader_->data_load_address()));
+        }
+    }
+    
+    // call init
+    register_pc_ = reader_->data_init_address();
+    for(;;) {
+        uint8_t opcode = memory_->get_byte(register_pc_++);
+        printf("opcode:\t0x%02x\n", opcode);
+        run_instruction(opcode);
+        if(opcode == 0x60) { // rts
+            break;
+        }
+    }
+    
+    // call play ever 1,000,000 / period times a second
+    double rate = 1000000.0;
+    if (reader_->is_pal()) {
+        rate /= reader_->pal_speed();
+    } else { // ntsc
+        rate /= reader_->ntsc_speed();
+    }
+    double period = 1.0 / rate;
+
+    int num_calls = 0;
+    for(;;) {
+        register_pc_ = reader_->data_play_address();
+        clock_t start = clock();
+        for(;;) {
+            uint8_t opcode = memory_->get_byte(register_pc_++);
+            //printf("opcode:\t0x%02x\n", opcode);
+            run_instruction(opcode);
+            if(opcode == 0x60) { // rts
+                break;
+            }
+        }
+        num_calls++;
+        double elapsed_ms = (clock() - start) / (double)(CLOCKS_PER_SEC / 1000);
+        //std::cout << elapsed_ms << ' ' << period << std::endl;
+        if(elapsed_ms < period) {
+            usleep((period - elapsed_ms) * 1000);
+        } else if (elapsed_ms < period*2) { // skip next period
+            usleep((period*2 - elapsed_ms) * 1000);
+        } else {
+            printf("this took way too long\n");
+            std::cout << elapsed_ms << ' ' << period << ' ' << num_calls << std::endl;
+        }
+    }
+}
+
 /**
 * @brief loop through all instructions, executing them in sequence.
 */
