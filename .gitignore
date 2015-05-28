@@ -5,3 +5,5 @@
 apu_test
 test.wav
 *.swp
+tools/nsf_disassembler
+nsf/nsf_test

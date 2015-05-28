@@ -27,8 +27,10 @@ class NSFReader {
     uint16_t ntsc_speed();
     uint16_t pal_speed();
     uint8_t banks(int i, int addr);
+    char *file_name();
     
  private:
+    char *file_name_;
     uint8_t nsf_version_;
     uint8_t num_songs_;
     uint8_t starting_song_;

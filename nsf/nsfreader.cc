@@ -1,6 +1,7 @@
 #import "nsfreader.h"
 
 NSFReader::NSFReader(char *nsffile) {
+    file_name_ = nsffile;
     FILE *fp = fopen(nsffile, "r");
     
     // first 128 bytes are header (http://kevtris.org/nes/nsfspec.txt):
@@ -143,4 +144,8 @@ uint16_t NSFReader::pal_speed() {
 
 uint8_t NSFReader::banks(int i, int addr) {
     return banks_[i][addr];
+}
+
+char *NSFReader::file_name() {
+    return file_name_;
 }

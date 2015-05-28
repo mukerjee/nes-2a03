@@ -11,9 +11,14 @@
 #include "counter.h"
 
 #include "apu_mixer.h"
-#include "resample.h"
+#include "audio.h"
+
+#include "nes_cpu.h"
 
 #include <vector>
+
+class Audio;
+class NesCpu;
 
 class APU : Countable {
  public:
@@ -21,12 +26,15 @@ class APU : Countable {
         fc_quarter_clock_(7457, true, this, false), fc_divider_(1, true, this),
         fc_reset_timer_(0, false, this) {}
 
+    void set_cpu(NesCpu *cpu);
     void SetByte(uint16_t addr, uint8_t b);
     uint8_t GetByte(uint16_t addr);
 
     void CPUClock();
     
     void GetCurrent(vector<uint8_t>& output);
+
+    NesCpu *cpu() {return cpu_;}
 
  private:
 
@@ -36,6 +44,9 @@ class APU : Countable {
     Noise noise_;
     DMC dmc_;
     Channel *channels_[5] = {&pulse1_, &pulse2_, &triangle_, &noise_, &dmc_};
+
+    Audio *audio_;
+    NesCpu *cpu_;
 
     // Frame Counter
     // TODO: Implement 5-step mode and IRQ

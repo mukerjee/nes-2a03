@@ -1,5 +1,10 @@
 #include "apu.h"
 
+void APU::set_cpu(NesCpu *cpu) {
+    cpu_ = cpu;
+    audio_ = new Audio(this);
+}
+
 void APU::SetByte(uint16_t addr, uint8_t b) {
     if (addr >= 0x4000 && addr <= 0x4003)
         pulse1_.SetByte(addr, b);
@@ -51,13 +56,16 @@ void APU::CPUClock() {
     fc_quarter_clock_.Clock();
     fc_divider_.Clock();
     if (!fc_divider_.value())
-        triangle_.TimerClock();
+        triangle_.TimerClock();    
 }
 
 void APU::GetCurrent(vector<uint8_t>& output) {
     output.clear();
-    for(int i = 0; i < 5; i++)
-        output.push_back(channels_[i]->GetCurrent());
+    for(int i = 0; i < 5; i++) {
+        if (i == 2 || i == 3 || i == 4) output.push_back(0);
+        else 
+            output.push_back(channels_[i]->GetCurrent());
+    }
 }
 
 void APU::FCReset() {

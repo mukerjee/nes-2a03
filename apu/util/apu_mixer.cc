@@ -11,40 +11,37 @@ APUMixer::APUMixer() {
     }
 }
 
-// operates on vectors of fixed size
-void APUMixer::Mix(const vector<vector<uint8_t>> &data, int bit_depth, int sample_rate, vector<int16_t> &output) {
+void APUMixer::Mix(queue<vector<uint8_t>> &data, int sample_rate, float prev, queue<float> &output) {
     vector<float> mixed;
-    for (vector<vector<uint8_t>>::const_iterator it = data.cbegin();
-         it != data.end(); it++) {
-        mixed.push_back(MixOne(*it));
+    while(!data.empty()) {
+        mixed.push_back(2*MixOne(data.front()) - 1);
+        data.pop();
     }
-    vector<int16_t> mapped;
-    map_samples(mixed, bit_depth, sample_rate, mapped);
-    vector<int16_t> hp1, hp2;
-    Highpass(mapped, 90, sample_rate, hp1);
-    Highpass(hp1, 440, sample_rate, hp2);
 
-    output.clear();
-    Lowpass(hp1, 14000, sample_rate, output);
-}
+    if(!mixed.empty()) { // filtering
+        vector<float> hp1, hp2, out;
+        float RC = 1.0 / (2*M_PI * 90);
+        float dt = 1.0 / sample_rate;
+        float a_hp90 = RC / (RC + dt);
 
-void APUMixer::Highpass(vector<int16_t> &data, float frequency, int sample_rate, vector<int16_t> &output) { //first order
-    float RC = 1.0 / (2*M_PI * frequency);
-    float dt = 1.0 / sample_rate;
-    float a = RC / (RC + dt);
-    output.push_back(data[0]);
-    for(int i = 1; i < data.size(); i++) {
-        output.push_back(a *(output[i-1] + data[i] - data[i-1]));
-    }
-}
+        RC = 1.0 / (2*M_PI * 440);
+        float a_hp440 = RC / (RC + dt);
 
-void APUMixer::Lowpass(vector<int16_t> &data, float frequency, int sample_rate, vector<int16_t> &output) { //first order
-    float RC = 1.0 / (2*M_PI * frequency);
-    float dt = 1.0 / sample_rate;
-    float a = dt / (RC + dt);
-    output.push_back(data[0]);
-    for(int i = 1; i < data.size(); i++) {
-        output.push_back(output[i-1] + a * (data[i] - output[i-1]));
+        RC = 1.0 / (2*M_PI * 14000);
+        float a_lp14000 = dt / (RC + dt);
+
+        hp1.push_back(prev);
+        hp2.push_back(prev);
+        out.push_back(prev);
+
+        for(int i = 1; i < mixed.size(); i++) {
+            hp1.push_back(a_hp90 *(hp1[i-1] + mixed[i] - mixed[i-1]));
+            hp2.push_back(a_hp440 *(hp2[i-1] + hp1[i] - hp1[i-1]));
+            out.push_back(out[i-1] + a_lp14000 * (hp2[i] - hp2[i-1]));
+        }
+        for (vector<float>::iterator it = out.begin(); it != out.end(); ++it) {
+            output.push(*it);
+        }
     }
 }
 

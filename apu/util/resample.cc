@@ -70,12 +70,3 @@ void write_wave(const char *output_file, const int16_t bit_depth,
     
     fclose(fp);
 }
-
-// int main() {
-//     vector<int16_t> data;
-//     for (int i = 0; i < 48000*5; i++) {
-//         data.push_back(0);
-//     }
-//     write_wave("test.wav", 16, 48000, data);
-//     return 0;
-// }

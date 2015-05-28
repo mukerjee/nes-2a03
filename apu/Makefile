@@ -1,15 +1,17 @@
-CPPFLAGS=-Ichannels/ -I../util/ -std=c++11 -O2
+CPPFLAGS=-Ichannels/ -I./util/ -std=c++11 -O3 -fomit-frame-pointer
 CXX=g++
 
-SRCS=apu_test.cc apu.cc channels/channel.cc channels/pulse.cc channels/triangle.cc channels/noise.cc channels/dmc.cc ../util/apu_mixer.cc ../util/counter.cc ../util/resample.cc
+LDFLAGS += -lportaudio
+
+SRCS=apu_test.cc apu.cc channels/channel.cc channels/pulse.cc channels/triangle.cc channels/noise.cc channels/dmc.cc ./util/apu_mixer.cc ./util/counter.cc ./util/audio.cc
 
 OBJS=$(subst .cc,.o,$(SRCS))
 
 EXE=apu_test
 
-all: cpu
+all: apu
 
-cpu: $(OBJS)
+apu: $(OBJS)
 	$(CXX) $(LDFLAGS) -o $(EXE) $(OBJS) $(LDLIBS)
 
 clean:

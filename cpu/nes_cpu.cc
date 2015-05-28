@@ -1,9 +1,11 @@
 #include "nes_cpu.h"
 
+//#define DEBUG
 
 /*************** CONSTRUCTOR/DESTRUCTOR ***************/
 NesCpu::NesCpu(APU *apu) {
     apu_ = apu;
+    apu_->set_cpu(this);
 	memory_ = new NesMemory(this, apu);
 
 	// // TESTING
@@ -21,9 +23,9 @@ NesCpu::~NesCpu() {
 
 /*************** EXECUTION ***************/
 /**
-* @breif nsf (music file) player
+* @brief init nsf (music file) player
 */
-void NesCpu::play_nsf(NSFReader *reader) {
+void NesCpu::init_nsf(NSFReader *reader) {
     reader_ = reader;
 
     // zero memory
@@ -49,7 +51,8 @@ void NesCpu::play_nsf(NSFReader *reader) {
     }
     
     // set starting song
-    register_a_ = reader_->starting_song() - 1;
+    track_ = reader_->starting_song() - 1;
+    register_a_ = track_;
 
     // determine if pal or ntsc
     register_x_ = reader_->is_pal();
@@ -70,73 +73,108 @@ void NesCpu::play_nsf(NSFReader *reader) {
         }
     }
     
-    int depth = 0;
+    interrupt_disable_ = true;
+
+    register_s_ = 0xFF;
+
+    memory_->set_byte(0x5000, 0x20); // jsr
+    memory_->set_byte(0x5001, reader_->data_init_address() & 0xFF);
+    memory_->set_byte(0x5002, reader_->data_init_address() >> 8);
+    memory_->set_byte(0x5003, 0xF2); // stp
+
+    memory_->set_byte(0x5004, 0x20); // jsr
+    memory_->set_byte(0x5005, reader_->data_play_address() & 0xFF);
+    memory_->set_byte(0x5006, reader_->data_play_address() >> 8);
+    memory_->set_byte(0x5007, 0x4C); // jmp 0x5003
+    memory_->set_byte(0x5008, 0x03);
+    memory_->set_byte(0x5009, 0x50);
+
 
     // call init
-    register_pc_ = reader_->data_init_address();
+    #ifdef DEBUG
+    print_header(0);
+    #endif
+    register_pc_ = 0x5000;
     for(;;) {
         uint8_t opcode = memory_->get_byte(register_pc_++);
+        if(opcode == 0xF2) { // stp
+            #ifdef DEBUG
+            instr_pc_ = register_pc_-1;
+            opcode_ = opcode;
+            instr_ = "(HLT)";
+            implied();
+            print_state();
+            #endif
+            break;
+        }
         int cycles = run_instruction(opcode);
+        #ifdef DEBUG
         print_state();
+        #endif
         for(int i = 0; i < cycles; i++) {
             apu_->CPUClock();
         }
-        if(opcode == 0x20) { // jsr
-            depth++;
-        }
-        if(opcode == 0x60) { // rts
-            depth--;
-            if (depth < 0)
-                break;
-        }
     }
+    #ifdef DEBUG
+    print_header(num_calls_);
+    #endif
+}
 
-    depth = 0;
+double NesCpu::play_gap() {
     // call play ever 1,000,000 / period times a second
     double rate = 1000000.0;
     if (reader_->is_pal()) {
         rate /= reader_->pal_speed();
     } else { // ntsc
+        //cout << reader_->ntsc_speed() << endl;
         rate /= reader_->ntsc_speed();
     }
-    double period = 1.0 / rate;
-    printf("\n\n done init \n \n");
-    int num_calls = 0;
+    return 1.0 / rate;
+}
+
+/**
+* @breif nsf (music file) player
+*/
+bool NesCpu::play_nsf(int &cycles_left) {
+    //clock_t start = clock();
+    //if(num_calls_ > 1) { return; }
     for(;;) {
-        register_pc_ = reader_->data_play_address();
-        clock_t start = clock();
-        for(;;) {
-            uint8_t opcode = memory_->get_byte(register_pc_++);
-            //printf("pc: 0x%02x\t opcode: 0x%02x\n", register_pc_-1, opcode);
-            int cycles = run_instruction(opcode);
-            for(int i = 0; i < cycles; i++) {
-                apu_->CPUClock();
-            }
-            if(opcode == 0x20) { // jsr
-                depth++;
-            }
-            if(opcode == 0x60) { // rts
-                depth--;
-                if (depth < 0)
-                    break;
-            }
-            if(opcode == 0x00) { //wrong!!
-                printf("where am i?\n");
-                return;
-            }
+        uint8_t opcode = memory_->get_byte(register_pc_++);
+        if(opcode == 0xF2) { // stp
+            #ifdef DEBUG
+            instr_pc_ = register_pc_-1;
+            opcode_ = opcode;
+            instr_ = "(HLT)";
+            implied();
+            print_state();
+            #endif
+            break;
         }
-        num_calls++;
-        double elapsed_ms = (clock() - start) / (double)(CLOCKS_PER_SEC / 1000);
-        //std::cout << elapsed_ms << ' ' << period << std::endl;
-        if(elapsed_ms < period) {
-            //usleep((period - elapsed_ms) * 1000);
-        } else if (elapsed_ms < period*2) { // skip next period
-            //usleep((period*2 - elapsed_ms) * 1000);
-        } else {
-            //printf("this took way too long\n");
-            //std::cout << elapsed_ms << ' ' << period << ' ' << num_calls << std::endl;
+        int cycles = run_instruction(opcode);
+        total_cycles_ += cycles;
+        #ifdef DEBUG
+        print_state();
+        #endif
+        // for(int i = 0; i < cycles; i++) {
+        //     apu_->CPUClock();
+        // }
+        cycles_left -= cycles;
+        if(cycles_left < 0) {
+            return false;
         }
     }
+    num_calls_++;
+    //printf("finished play %d\n", num_calls_);
+    #ifdef DEBUG
+    print_header(num_calls_);
+    #endif
+    return true;
+    //printf("total cycles = %d\n", total_cycles_);
+    // #ifdef DEBUG
+    // if (num_calls_ > 1000) {
+    //     return;
+    // }
+    // #endif
 }
 
 /**
@@ -163,9 +201,9 @@ void NesCpu::cpu_loop() {
 uint8_t NesCpu::run_instruction(uint8_t opcode) {
     uint16_t addr;
     opcode_ = opcode;
-    instr_pc_ = register_pc_;
+    instr_pc_ = register_pc_ - 1;
     switch(opcode) {
-    case 0x69: // immediate
+    case 0x69:
         adc(immediate());
         return 2;
     case 0x65:
@@ -264,6 +302,7 @@ uint8_t NesCpu::run_instruction(uint8_t opcode) {
         return 2 + bpl(relative());
 
     case 0x00:
+        implied();
         brk();
         return 7;
 
@@ -274,18 +313,22 @@ uint8_t NesCpu::run_instruction(uint8_t opcode) {
         return 2 + bvs(relative());
 
     case 0x18:
+        implied();
         clc();
         return 2;
 
     case 0xD8:
+        implied();
         cld();
         return 2;
 
     case 0x58:
+        implied();
         cli();
         return 2;
 
     case 0xB8:
+        implied();
         clv();
         return 2;
 
@@ -351,10 +394,12 @@ uint8_t NesCpu::run_instruction(uint8_t opcode) {
         return 7;
 
     case 0xCA:
+        implied();
         dex();
         return 2;
 
     case 0x88:
+        implied();
         dey();
         return 2;
 
@@ -400,10 +445,12 @@ uint8_t NesCpu::run_instruction(uint8_t opcode) {
         return 7;
 
     case 0xE8:
+        implied();
         inx();
         return 2;
 
     case 0xC8:
+        implied();
         iny();
         return 2;
 
@@ -498,6 +545,7 @@ uint8_t NesCpu::run_instruction(uint8_t opcode) {
         return 7;
 
     case 0xEA:
+        implied();
         nop();
         return 2;
 
@@ -530,18 +578,22 @@ uint8_t NesCpu::run_instruction(uint8_t opcode) {
         return (addr % 0x100 == 0xFF) ? 6 : 5;
         
     case 0x48:
+        implied();
         pha();
         return 3;
 
     case 0x08:
+        implied();
         php();
         return 3;
 
     case 0x68:
+        implied();
         pla();
         return 4;
         
     case 0x28:
+        implied();
         plp();
         return 4;
 
@@ -580,10 +632,12 @@ uint8_t NesCpu::run_instruction(uint8_t opcode) {
         return 7;
 
     case 0x40:
+        implied();
         rti();
         return 6;
 
     case 0x60:
+        implied();
         rts();
         return 6;
 
@@ -616,14 +670,17 @@ uint8_t NesCpu::run_instruction(uint8_t opcode) {
         return (addr % 0x100 == 0xFF) ? 6 : 5;
 
     case 0x38:
+        implied();
         sec();
         return 2;
 
     case 0xF8:
+        implied();
         sed();
         return 2;
 
     case 0x78:
+        implied();
         sei();
         return 2;
 
@@ -670,26 +727,32 @@ uint8_t NesCpu::run_instruction(uint8_t opcode) {
         return 4;
 
     case 0xAA:
+        implied();
         tax();
         return 2;
 
     case 0xA8:
+        implied();
         tay();
         return 2;
 
     case 0xBA:
+        implied();
         tsx();
         return 2;
 
     case 0x8A:
+        implied();
         txa();
         return 2;
 
     case 0x9A:
+        implied();
         txs();
         return 2;
 
     case 0x98:
+        implied();
         tya();
         return 2;
 
@@ -710,18 +773,20 @@ uint8_t NesCpu::run_instruction(uint8_t opcode) {
 * @param address
 */
 void NesCpu::adc(uint16_t address) {
+    instr_ = "ADC";
     uint8_t value = memory_->get_byte(address);
 	uint8_t original_a = register_a_;
-    uint16_t result = register_a_ + value + carry_flag_;
-    register_a_= (uint8_t)(result & 0xFF);
-
-	carry_flag_ = result & 0x100;
-	zero_flag_ = register_a_ == 0;
-	negative_flag_ = register_a_ & 0x80;
+    register_a_= register_a_ + value + carry_flag_;
 
     // set if sign of result is different than the sign of both
     // the inputs.
 	overflow_flag_ = (original_a ^ register_a_) & (value ^ register_a_) & 0x80;
+
+    uint16_t resultu16 = original_a + value + carry_flag_;
+	carry_flag_ = resultu16 > 0xFF;
+	zero_flag_ = register_a_ == 0;
+	negative_flag_ = register_a_ & 0x80;
+
 }
 		
 /**
@@ -731,6 +796,7 @@ void NesCpu::adc(uint16_t address) {
 * @param address
 */
 void NesCpu::AND(uint16_t address) {
+    instr_ = "AND";
     uint8_t value = memory_->get_byte(address);
 	register_a_ &= value;
 
@@ -745,6 +811,7 @@ void NesCpu::AND(uint16_t address) {
 * @param address
 */
 void NesCpu::asl(uint16_t address) { // memory version
+    instr_ = "ASL";
     uint8_t value = memory_->get_byte(address);
 
     carry_flag_ = value & 0x80;
@@ -757,11 +824,12 @@ void NesCpu::asl(uint16_t address) { // memory version
 
     #ifdef DEBUG
     int i = strlen(context_) - 3;
-    sprintf(*context_[i], "%02x", value);
+    sprintf(&context_[i], "%02X]", value);
     #endif
 }
 
 void NesCpu::asl() { // accumulator version
+    instr_ = "ASL";
     uint8_t value = register_a_;
 
     carry_flag_ = value & 0x80;
@@ -782,6 +850,7 @@ void NesCpu::asl() { // accumulator version
 * @return
 */
 uint8_t NesCpu::bcc(uint16_t address) {
+    instr_ = "BCC";
     if (!carry_flag_) {
         uint8_t old_page = register_pc_ >> 8;
         register_pc_ += (int8_t)memory_->get_byte(address);
@@ -799,6 +868,7 @@ uint8_t NesCpu::bcc(uint16_t address) {
 * @return
 */
 uint8_t NesCpu::bcs(uint16_t address) {
+    instr_ = "BCS";
     if (carry_flag_) {
         uint8_t old_page = register_pc_ >> 8;
         register_pc_ += (int8_t)memory_->get_byte(address);
@@ -816,6 +886,7 @@ uint8_t NesCpu::bcs(uint16_t address) {
 * @return
 */
 uint8_t NesCpu::beq(uint16_t address) {
+    instr_ = "BEQ";
     if (zero_flag_) {
         uint8_t old_page = register_pc_ >> 8;
         register_pc_ += (int8_t)memory_->get_byte(address);
@@ -833,6 +904,7 @@ uint8_t NesCpu::beq(uint16_t address) {
 * @param address
 */
 void NesCpu::bit(uint16_t address) {
+    instr_ = "BIT";
     uint8_t result = register_a_ & memory_->get_byte(address);
     
     zero_flag_ = result == 0;
@@ -849,6 +921,7 @@ void NesCpu::bit(uint16_t address) {
 * @return
 */
 uint8_t NesCpu::bmi(uint16_t address) {
+    instr_ = "BMI";
     if (negative_flag_) {
         uint8_t old_page = register_pc_ >> 8;
         register_pc_ += (int8_t)memory_->get_byte(address);
@@ -866,6 +939,7 @@ uint8_t NesCpu::bmi(uint16_t address) {
 * @return
 */
 uint8_t NesCpu::bne(uint16_t address) {
+    instr_ = "BNE";
     if (!zero_flag_) {
         uint8_t old_page = register_pc_ >> 8;
         register_pc_ += (int8_t)memory_->get_byte(address);
@@ -883,6 +957,7 @@ uint8_t NesCpu::bne(uint16_t address) {
 * @return
 */
 uint8_t NesCpu::bpl(uint16_t address) {
+    instr_ = "BPL";
     if (!negative_flag_) {
         uint8_t old_page = register_pc_ >> 8;
         register_pc_ += (int8_t)memory_->get_byte(address);
@@ -898,6 +973,7 @@ uint8_t NesCpu::bpl(uint16_t address) {
 * status set to one.
 */
 void NesCpu::brk() {
+    instr_ = "BRK";
     register_pc_++; // brk increments the pc first
     push_to_stack(register_pc_ >> 8);
     push_to_stack(register_pc_ & 0xFF);
@@ -918,6 +994,7 @@ void NesCpu::brk() {
 * @return
 */
 uint8_t NesCpu::bvc(uint16_t address) {
+    instr_ = "BVC";
     if (!overflow_flag_) {
         uint8_t old_page = register_pc_ >> 8;
         register_pc_ += (int8_t)memory_->get_byte(address);
@@ -935,6 +1012,7 @@ uint8_t NesCpu::bvc(uint16_t address) {
 * @return
 */
 uint8_t NesCpu::bvs(uint16_t address) {
+    instr_ = "BVS";
     if (overflow_flag_) {
         uint8_t old_page = register_pc_ >> 8;
         register_pc_ += (int8_t)memory_->get_byte(address);
@@ -947,6 +1025,7 @@ uint8_t NesCpu::bvs(uint16_t address) {
 * @brief Set the carry flag to zero.
 */
 void NesCpu::clc() {
+    instr_ = "CLC";
     carry_flag_ = 0;
 }
 
@@ -954,6 +1033,7 @@ void NesCpu::clc() {
 * @brief Sets the decimal mode flag to zero.
 */
 void NesCpu::cld() {
+    instr_ = "CLD";
     decimal_mode_flag_ = 0;
 }
 
@@ -962,6 +1042,7 @@ void NesCpu::cld() {
 * be serviced.
 */
 void NesCpu::cli() {
+    instr_ = "CLI";
     interrupt_disable_ = 0;
 }
 
@@ -969,6 +1050,7 @@ void NesCpu::cli() {
 * @brief Clears the overflow flag.
 */
 void NesCpu::clv() {
+    instr_ = "CLV";
     overflow_flag_ = 0;
 }
 
@@ -979,6 +1061,7 @@ void NesCpu::clv() {
 * @param address
 */
 void NesCpu::cmp(uint16_t address) {
+    instr_ = "CMP";
     uint8_t value = memory_->get_byte(address);
     uint8_t result = register_a_ - value;
     carry_flag_ = register_a_ >= value;
@@ -993,6 +1076,7 @@ void NesCpu::cmp(uint16_t address) {
 * @param address
 */
 void NesCpu::cpx(uint16_t address) {
+    instr_ = "CPX";
     uint8_t value = memory_->get_byte(address);
     uint8_t result = register_x_ - value;
     carry_flag_ = register_x_ >= value;
@@ -1007,6 +1091,7 @@ void NesCpu::cpx(uint16_t address) {
 * @param address
 */
 void NesCpu::cpy(uint16_t address) {
+    instr_ = "CPY";
     uint8_t value = memory_->get_byte(address);
     uint8_t result = register_y_ - value;
     carry_flag_ = register_y_ >= value;
@@ -1021,6 +1106,7 @@ void NesCpu::cpy(uint16_t address) {
 * @param address
 */
 void NesCpu::dec(uint16_t address) {
+    instr_ = "DEC";
     uint8_t result = memory_->get_byte(address) - 1;
     memory_->set_byte(address, result);
     zero_flag_ = result == 0;
@@ -1028,7 +1114,7 @@ void NesCpu::dec(uint16_t address) {
 
     #ifdef DEBUG
     int i = strlen(context_) - 3;
-    sprintf(*context_[i], "%02x", result);
+    sprintf(&context_[i], "%02X]", result);
     #endif
 }
 
@@ -1037,6 +1123,7 @@ void NesCpu::dec(uint16_t address) {
 * as appropriate.
 */
 void NesCpu::dex() {
+    instr_ = "DEX";
     register_x_--;
     zero_flag_ = register_x_ == 0;
     negative_flag_ = register_x_ & 0x80;
@@ -1047,6 +1134,7 @@ void NesCpu::dex() {
 * as appropriate.
 */
 void NesCpu::dey() {
+    instr_ = "DEY";
     register_y_--;
     zero_flag_ = register_y_ == 0;
     negative_flag_ = register_y_ & 0x80;
@@ -1059,6 +1147,7 @@ void NesCpu::dey() {
 * @param address
 */
 void NesCpu::eor(uint16_t address) {
+    instr_ = "EOR";
     register_a_ = register_a_ ^ memory_->get_byte(address);
     zero_flag_ = register_a_ == 0;
     negative_flag_ = register_a_ & 0x80;
@@ -1071,6 +1160,7 @@ void NesCpu::eor(uint16_t address) {
 * @param address
 */
 void NesCpu::inc(uint16_t address) {
+    instr_ = "INC";
     uint8_t result = memory_->get_byte(address) + 1;
     memory_->set_byte(address, result);
     zero_flag_ = result == 0;
@@ -1078,7 +1168,7 @@ void NesCpu::inc(uint16_t address) {
 
     #ifdef DEBUG
     int i = strlen(context_) - 3;
-    sprintf(*context_[i], "%02x", result);
+    sprintf(&context_[i], "%02X]", result);
     #endif
 }
 
@@ -1087,6 +1177,7 @@ void NesCpu::inc(uint16_t address) {
 * appropriate.
 */
 void NesCpu::inx() {
+    instr_ = "INX";
     register_x_++;
     zero_flag_ = register_x_ == 0;
     negative_flag_ = register_x_ & 0x80;
@@ -1097,6 +1188,7 @@ void NesCpu::inx() {
 * appropriate.
 */
 void NesCpu::iny() {
+    instr_ = "INY";
     register_y_++;
     zero_flag_ = register_y_ == 0;
     negative_flag_ = register_y_ & 0x80;
@@ -1108,7 +1200,15 @@ void NesCpu::iny() {
 * @param address
 */
 void NesCpu::jmp(uint16_t address) {
+    instr_ = "JMP";
     register_pc_ = address;
+
+    #ifdef DEBUG
+    if(opcode_ == 0x4C) {
+        int i = strlen(context_) - 3;
+        sprintf(&context_[i], "00]");
+    }
+    #endif
 }
 
 /**
@@ -1119,10 +1219,16 @@ void NesCpu::jmp(uint16_t address) {
 * @param address
 */
 void NesCpu::jsr(uint16_t address) {
+    instr_ = "JSR";
     push_to_stack((register_pc_ - 1) >> 8);
     push_to_stack((register_pc_ - 1) & 0xFF);
 
     register_pc_ = address;
+
+    #ifdef DEBUG
+    int i = strlen(context_) - 3;
+    sprintf(&context_[i], "00]");
+    #endif
 }
 
 /**
@@ -1132,6 +1238,7 @@ void NesCpu::jsr(uint16_t address) {
 * @param address
 */
 void NesCpu::lda(uint16_t address) {
+    instr_ = "LDA";
 	register_a_ = memory_->get_byte(address);
 
 	zero_flag_ = register_a_ == 0;
@@ -1145,6 +1252,7 @@ void NesCpu::lda(uint16_t address) {
 * @param address
 */
 void NesCpu::ldx(uint16_t address) {
+    instr_ = "LDX";
 	register_x_ = memory_->get_byte(address);
 
 	zero_flag_ = register_x_ == 0;
@@ -1158,6 +1266,7 @@ void NesCpu::ldx(uint16_t address) {
 * @param address
 */
 void NesCpu::ldy(uint16_t address) {
+    instr_ = "LDY";
 	register_y_ = memory_->get_byte(address);
 
 	zero_flag_ = register_y_ == 0;
@@ -1171,6 +1280,7 @@ void NesCpu::ldy(uint16_t address) {
 * @param address
 */
 void NesCpu::lsr(uint16_t address) { // memory version
+    instr_ = "LSR";
     uint8_t value = memory_->get_byte(address);
 
     carry_flag_ = value & 0x01;
@@ -1183,11 +1293,12 @@ void NesCpu::lsr(uint16_t address) { // memory version
 
     #ifdef DEBUG
     int i = strlen(context_) - 3;
-    sprintf(*context_[i], "%02x", value);
+    sprintf(&context_[i], "%02X]", value);
     #endif
 }
 
 void NesCpu::lsr() { // accumulator version
+    instr_ = "LSR";
     uint8_t value = register_a_;
 
     carry_flag_ = value & 0x01;
@@ -1204,6 +1315,7 @@ void NesCpu::lsr() { // accumulator version
 * normal incrementing of the program counter to the next instruction.
 */
 void NesCpu::nop() {
+    instr_ = "NOP";
 }
 
 
@@ -1214,6 +1326,7 @@ void NesCpu::nop() {
 * @param address
 */
 void NesCpu::ora(uint16_t address) {
+    instr_ = "ORA";
 	register_a_ |= memory_->get_byte(address);
 
 	zero_flag_ = register_a_ == 0;
@@ -1224,6 +1337,7 @@ void NesCpu::ora(uint16_t address) {
 * @brief Pushes a copy of the accumulator on to the stack.
 */
 void NesCpu::pha() {
+    instr_ = "PHA";
     push_to_stack(register_a_);
 }
 
@@ -1231,6 +1345,7 @@ void NesCpu::pha() {
 * @brief Pushes a copy of the status flags on to the stack.
 */
 void NesCpu::php() {
+    instr_ = "PHP";
     push_to_stack(get_processor_status());
 }
 
@@ -1239,6 +1354,7 @@ void NesCpu::php() {
 * and negative flags are set as appropriate.
 */
 void NesCpu::pla() {
+    instr_ = "PLA";
     register_a_ = pop_from_stack();
     
     zero_flag_ = register_a_ == 0;
@@ -1250,6 +1366,7 @@ void NesCpu::pla() {
 * flags will take on new states as determined by the value pulled.
 */
 void NesCpu::plp() {
+    instr_ = "PLP";
     set_processor_status(pop_from_stack());
 }
 
@@ -1261,6 +1378,7 @@ void NesCpu::plp() {
 * @param address
 */
 void NesCpu::rol(uint16_t address) { // memory version
+    instr_ = "ROL";
     uint8_t value = memory_->get_byte(address);
 
     uint8_t b_0 = carry_flag_;
@@ -1275,11 +1393,12 @@ void NesCpu::rol(uint16_t address) { // memory version
 
     #ifdef DEBUG
     int i = strlen(context_) - 3;
-    sprintf(*context_[i], "%02x", value);
+    sprintf(&context_[i], "%02X]", value);
     #endif
 }
 
 void NesCpu::rol() { // accumulator version
+    instr_ = "ROL";
     uint8_t value = register_a_;
 
     uint8_t b_0 = carry_flag_;
@@ -1301,6 +1420,7 @@ void NesCpu::rol() { // accumulator version
 * @param address
 */
 void NesCpu::ror(uint16_t address) {
+    instr_ = "ROR";
     uint8_t value = memory_->get_byte(address);
 
     uint8_t b_7 = carry_flag_;
@@ -1315,11 +1435,12 @@ void NesCpu::ror(uint16_t address) {
 
     #ifdef DEBUG
     int i = strlen(context_) - 3;
-    sprintf(*context_[i], "%02x", value);
+    sprintf(&context_[i], "%02X]", value);
     #endif
 }
 
 void NesCpu::ror() { // accumulator version
+    instr_ = "ROR";
     uint8_t value = register_a_;
 
     uint8_t b_7 = carry_flag_;
@@ -1339,6 +1460,7 @@ void NesCpu::ror() { // accumulator version
 * counter.
 */
 void NesCpu::rti() {
+    instr_ = "RTI";
     set_processor_status(pop_from_stack());
     register_pc_ = pop_from_stack();
     register_pc_ |= (pop_from_stack() << 8);
@@ -1349,6 +1471,7 @@ void NesCpu::rti() {
 * calling routine. It pulls the program counter (minus one) from the stack.
 */
 void NesCpu::rts() {
+    instr_ = "RTS";
     register_pc_ = pop_from_stack();
     register_pc_ |= (pop_from_stack() << 8);
     register_pc_++;
@@ -1362,23 +1485,25 @@ void NesCpu::rts() {
 * @param address
 */
 void NesCpu::sbc(uint16_t address) {
+    instr_ = "SBC";
     uint8_t value = memory_->get_byte(address);
 	uint8_t original_a = register_a_;
     register_a_ = register_a_ - value - (1 - carry_flag_);
 
-	carry_flag_ = register_a_ < value + (1 - carry_flag_);
+    int16_t result16 = (int8_t)original_a - (int8_t)value - (1 - carry_flag_);
+    overflow_flag_ = result16 > 127 || result16 < -128;
+
+    carry_flag_ = original_a >= value + (1 - carry_flag_);
 	zero_flag_ = register_a_ == 0;
 	negative_flag_ = register_a_ & 0x80;
 
-    // set if sign of result is different than the sign of both
-    // the inputs.
-	overflow_flag_ = (original_a ^ register_a_) & (value ^ register_a_) & 0x80;
 }
 
 /**
 * @brief Set the carry flag to one.
 */
 void NesCpu::sec() {
+    instr_ = "SEC";
     carry_flag_ = 1;
 }
 
@@ -1386,6 +1511,7 @@ void NesCpu::sec() {
 * @brief Set the decimal mode flag to one.
 */
 void NesCpu::sed() {
+    instr_ = "SED";
     decimal_mode_flag_ = 1;
 }
 
@@ -1393,6 +1519,7 @@ void NesCpu::sed() {
 * @brief Set the interrupt disable flag to one.
 */
 void NesCpu::sei() {
+    instr_ = "SEI";
     interrupt_disable_ = 1;
 }
 
@@ -1402,11 +1529,12 @@ void NesCpu::sei() {
 * @param address
 */
 void NesCpu::sta(uint16_t address) {
+    instr_ = "STA";
     memory_->set_byte(address, register_a_);
 
     #ifdef DEBUG
     int i = strlen(context_) - 3;
-    sprintf(*context_[i], "%02x", register_a_);
+    sprintf(&context_[i], "%02X]", register_a_);
     #endif
 }
 
@@ -1416,11 +1544,12 @@ void NesCpu::sta(uint16_t address) {
 * @param address
 */
 void NesCpu::stx(uint16_t address) {
+    instr_ = "STX";
     memory_->set_byte(address, register_x_);
 
     #ifdef DEBUG
     int i = strlen(context_) - 3;
-    sprintf(*context_[i], "%02x", register_x_);
+    sprintf(&context_[i], "%02X]", register_x_);
     #endif
 }
 
@@ -1430,11 +1559,12 @@ void NesCpu::stx(uint16_t address) {
 * @param address
 */
 void NesCpu::sty(uint16_t address) {
+    instr_ = "STY";
     memory_->set_byte(address, register_y_);
 
     #ifdef DEBUG
     int i = strlen(context_) - 3;
-    sprintf(*context_[i], "%02x", register_y_);
+    sprintf(&context_[i], "%02X]", register_y_);
     #endif
 }
 
@@ -1443,6 +1573,7 @@ void NesCpu::sty(uint16_t address) {
 * sets the zero and negative flags as appropriate.
 */
 void NesCpu::tax() {
+    instr_ = "TAX";
     register_x_ = register_a_;
 
     zero_flag_ = register_x_ == 0;
@@ -1454,7 +1585,8 @@ void NesCpu::tax() {
 * sets the zero and negative flags as appropriate.
 */
 void NesCpu::tay() {
-    register_x_ = register_a_;
+    instr_ = "TAY";
+    register_y_ = register_a_;
 
     zero_flag_ = register_y_ == 0;
     negative_flag_ = register_y_ & 0x80;
@@ -1465,6 +1597,7 @@ void NesCpu::tay() {
 * and sets the zero and negative flags as appropriate.
 */
 void NesCpu::tsx() {
+    instr_ = "TSX";
     register_x_ = register_s_;
 
     zero_flag_ = register_x_ == 0;
@@ -1476,6 +1609,7 @@ void NesCpu::tsx() {
 * sets the zero and negative flags as appropriate.
 */
 void NesCpu::txa() {
+    instr_ = "TXA";
     register_a_ = register_x_;
 
     zero_flag_ = register_a_ == 0;
@@ -1486,6 +1620,7 @@ void NesCpu::txa() {
 * @brief Copies the current contents of the X register into the stack register.
 */
 void NesCpu::txs() {
+    instr_ = "TXS";
     register_s_ = register_x_;
 }
 
@@ -1494,11 +1629,13 @@ void NesCpu::txs() {
 * sets the zero and negative flags as appropriate.
 */
 void NesCpu::tya() {
+    instr_ = "TYA";
     register_a_ = register_y_;
 
     zero_flag_ = register_a_ == 0;
     negative_flag_ = register_a_ & 0x80;
 }
+
 
 /*************** HELPER FUNCTIONS ***************/
 
@@ -1579,6 +1716,13 @@ void NesCpu::bank_switch(uint16_t addr, uint8_t byte) {
 /*************** ADDRESSING MODES ***************/
 // Descriptions from: http://www.obelisk.demon.co.uk/6502/addressing.html
 
+void NesCpu::implied() {
+    #ifdef DEBUG
+    sprintf(context_, "                ");
+    #endif
+    return;
+}
+
 /**
 * @brief Some instructions have an option to operate directly upon the
 * accumulator. The programmer specifies this by using a special operand value,
@@ -1588,7 +1732,7 @@ void NesCpu::bank_switch(uint16_t addr, uint8_t byte) {
 */
 void NesCpu::accumulator() {
     #ifdef DEBUG
-    sprintf(context_, "A");
+    sprintf(context_, "A               ");
     #endif
     return;
 }
@@ -1603,7 +1747,7 @@ void NesCpu::accumulator() {
 */
 uint16_t NesCpu::immediate() {
     #ifdef DEBUG
-    sprintf(context_, "#%02x", memory_->get_memory(register_pc_+1));
+    sprintf(context_, "#%02X             ", memory_->get_byte(register_pc_));
     #endif
     return register_pc_++;
 }
@@ -1620,9 +1764,9 @@ uint16_t NesCpu::immediate() {
 */
 uint16_t NesCpu::zero_page() {
     #ifdef DEBUG
-    uint8_t addr = memory_->get_memory(register_pc_+1);
-    uint8_t value = memory_->get_memory(addr);
-    sprintf(context_, "%02x\t\t\t[%02x]", addr, value);
+    uint8_t addr = memory_->get_byte(register_pc_);
+    uint8_t value = memory_->get_byte(addr);
+    sprintf(context_, "%02X          [%02X]", addr, value);
     #endif
 	return memory_->get_byte(register_pc_++);
 }
@@ -1638,9 +1782,9 @@ uint16_t NesCpu::zero_page() {
 */
 uint16_t NesCpu::zero_page_x() {
     #ifdef DEBUG
-    uint8_t addr = memory_->get_memory(register_pc_+1);
-    uint8_t value = memory_->get_memory((addr + register_x_) % 0x100);
-    sprintf(context_, "%02x,X\t\t\t[%02x=%02x]", addr,
+    uint8_t addr = memory_->get_byte(register_pc_);
+    uint8_t value = memory_->get_byte((addr + register_x_) % 0x100);
+    sprintf(context_, "%02X,X     [%02X=%02X]", addr,
         (addr+register_x_) % 0x100, value);
     #endif
 	return (memory_->get_byte(register_pc_++) + register_x_) % 0x100;
@@ -1656,10 +1800,10 @@ uint16_t NesCpu::zero_page_x() {
 */
 uint16_t NesCpu::zero_page_y() {
     #ifdef DEBUG
-    uint8_t addr = memory_->get_memory(register_pc_+1);
-    uint8_t value = memory_->get_memory((addr + register_y_) % 0x100);
-    sprintf(context_, "%02x,Y\t\t\t[%02x=%02x]", addr,
-        (addr+regiser_x_) % 0x100, value);
+    uint8_t addr = memory_->get_byte(register_pc_);
+    uint8_t value = memory_->get_byte((addr + register_y_) % 0x100);
+    sprintf(context_, "%02X,Y     [%02X=%02X]", addr,
+        (addr+register_x_) % 0x100, value);
     #endif
 	return (memory_->get_byte(register_pc_++) + register_y_) % 0x100;
 }
@@ -1676,8 +1820,8 @@ uint16_t NesCpu::zero_page_y() {
 */
 uint16_t NesCpu::relative() {
     #ifdef DEBUG
-    int8_t addr = memory_->get_memory(register_pc_+1);
-    sprintf(context_, "%02x\t\t\t[%04x]", addr, addr+register_pc_);
+    int8_t addr = memory_->get_byte(register_pc_);
+    sprintf(context_, "%02X        [%04X]", (uint8_t)addr, addr+register_pc_+1);
     #endif
     return register_pc_++;
 }
@@ -1690,9 +1834,9 @@ uint16_t NesCpu::relative() {
 */
 uint16_t NesCpu::absolute() {
     #ifdef DEBUG
-    uint16_t addr = memory_->get_word(register_pc_+1);
-    uint8_t value = memory_->get_memory(addr);
-    sprintf(context_, "%04x\t\t\t[%02x]", addr, value);
+    uint16_t addr = memory_->get_word(register_pc_);
+    uint8_t value = memory_->get_byte(addr);
+    sprintf(context_, "%04X        [%02X]", addr, value);
     #endif
 	uint16_t address = memory_->get_word(register_pc_);
     register_pc_ += 2;
@@ -1710,9 +1854,9 @@ uint16_t NesCpu::absolute() {
 */
 uint16_t NesCpu::absolute_x() {
     #ifdef DEBUG
-    uint16_t addr = memory_->get_word(register_pc_+1);
-    uint8_t value = memory_->get_memory(addr+register_x_);
-    sprintf(context_, "%04x,X\t\t\t[%04x=%02x]", addr, addr+register_x_,
+    uint16_t addr = memory_->get_word(register_pc_);
+    uint8_t value = memory_->get_byte(addr+register_x_);
+    sprintf(context_, "%04X,X [%04X=%02X]", addr, addr+register_x_,
         value);
     #endif
     uint16_t address = memory_->get_word(register_pc_) + register_x_;
@@ -1729,9 +1873,9 @@ uint16_t NesCpu::absolute_x() {
 */
 uint16_t NesCpu::absolute_y() {
     #ifdef DEBUG
-    uint16_t addr = memory_->get_word(register_pc_+1);
-    uint8_t value = memory_->get_memory(addr+register_y_);
-    sprintf(context_, "%04x,Y\t\t\t[%04x=%02x]", addr, addr+register_y_,
+    uint16_t addr = memory_->get_word(register_pc_);
+    uint8_t value = memory_->get_byte(addr+register_y_);
+    sprintf(context_, "%04X,Y [%04X=%02X]", addr, addr+register_y_,
         value);
     #endif
     uint16_t address = memory_->get_word(register_pc_) + register_y_;
@@ -1753,9 +1897,9 @@ uint16_t NesCpu::absolute_y() {
 */
 uint16_t NesCpu::indirect() {
     #ifdef DEBUG
-    uint16_t addr = memory_->get_word(register_pc_+1);
-    uint8_t value = memory_->get_byte(memory_->get_word(addr);
-    sprintf(context_, "%04x\t\t\t[%04x]", addr, value);
+    uint16_t addr = memory_->get_word(register_pc_);
+    uint16_t value = memory_->get_word(addr);
+    sprintf(context_, "(%04X)    [%04X]", addr, value);
     #endif
     uint16_t address = memory_->get_word(memory_->get_word(register_pc_));
     register_pc_ += 2;
@@ -1772,11 +1916,10 @@ uint16_t NesCpu::indirect() {
 */
 uint16_t NesCpu::indexed_indirect() {
     #ifdef DEBUG
-    uint8_t addr = memory_->get_byte(register_pc_+1);
-    uint8_t value = memory_->get_byte(memory_->get_word(addr+register_x_)
-                                      % 0x100);
-    sprintf(context_, "(%02x,X)\t\t\t[%04x=%02x]", addr,
-            memory_->get_word(addr+register_x_), value);
+    uint8_t addr = memory_->get_byte(register_pc_);
+    uint8_t value = memory_->get_byte(memory_->get_word((addr+register_x_) % 0x100));
+    sprintf(context_, "(%02X,X) [%04X=%02X]", addr,
+            memory_->get_word((addr+register_x_) % 0x100), value);
     #endif
     return memory_->get_word((memory_->get_byte(register_pc_++) +
                               register_x_) % 0x100);
@@ -1792,10 +1935,10 @@ uint16_t NesCpu::indexed_indirect() {
 */
 uint16_t NesCpu::indirect_indexed() {
     #ifdef DEBUG
-    uint8_t addr = memory_->get_byte(register_pc_+1);
+    uint8_t addr = memory_->get_byte(register_pc_);
     uint8_t value = memory_->get_byte(memory_->get_word(addr) +
                                       register_y_);
-    sprintf(context_, "(%02x),Y\t\t\t[%04x=%02x]", addr,
+    sprintf(context_, "(%02X),Y [%04X=%02X]", addr,
             memory_->get_word(addr) + register_y_, value);
     #endif
     return memory_->get_word(memory_->get_byte(register_pc_++)) +
@@ -1805,9 +1948,13 @@ uint16_t NesCpu::indirect_indexed() {
 		
 /*************** TESTING ***************/
 void NesCpu::print_state() {
-    printf("%04x\t%02x\t%s\t",
-           instr_pc_, opcode_, instr_);
-    printf("%s\t%02x %02x %02x  [",
+    printf("%04X   %02X   ", instr_pc_, opcode_);
+    if(strlen(instr_.c_str()) == 3) {
+        printf(" %s   ", instr_.c_str());
+    } else {
+        printf("%s  ", instr_.c_str());
+    }
+    printf("%s  %02X %02X %02X  [",
            context_, register_a_,
            register_x_, register_y_);
     if (negative_flag_) {
@@ -1816,7 +1963,7 @@ void NesCpu::print_state() {
         printf(".");
     }
     if (overflow_flag_) {
-        printf("O");
+        printf("V");
     } else {
         printf(".");
     }
@@ -1835,6 +1982,22 @@ void NesCpu::print_state() {
     } else {
         printf(".");
     }
-    printf("]\t%02x\n", register_s_);
+    printf("]   %02X\n", register_s_);
 
+}
+
+void NesCpu::print_header(int call_number) {
+    printf("\n\n\n");
+    printf("Trace file:  Z:\\Users\\mukerjee\\Dropbox\\Research\\nes-2a03-cpp-backend\\examples\\");
+    char* file = reader_->file_name();
+    int j = 0;
+    for(int i = 0; i < strlen(file); i++) {
+        if(file[i] == '/')
+            j = i+1;
+    }
+    printf("%s\n", &file[j]);
+    //printf("Trace file:  %s\n", reader_->file_name());
+    printf("Track Number %d, Call number %d\n\n", track_, call_number);
+    printf("PC     Instr.      Context            A  X  Y  Status    SP\n");
+    printf("===========================================================\n");
 }

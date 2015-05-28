@@ -1,8 +1,9 @@
-#include <iostream>
 #include "nes_memory.h"
 
-NesMemory::NesMemory() {
+NesMemory::NesMemory(NesCpu *cpu, APU *apu) {
     memory_ = (uint8_t *)malloc(MEM_SIZE * sizeof(uint8_t));
+    cpu_ = cpu;
+    apu_ = apu;
 }
 
 NesMemory::~NesMemory() {
@@ -23,9 +24,9 @@ void NesMemory::set_byte(const uint16_t addr, const uint8_t byte) {
         memory_[base_addr + 0x1000] = byte;
         memory_[base_addr + 0x1800] = byte;
     } else if (addr >= 0x5FF8 and addr <= 0x5FFF) { // bank switching
-        // TODO
+        cpu_->bank_switch(addr, byte);
     } else if (addr >= 0x4000 and addr <= 0x4017) { // APU
-        // TODO
+        apu_->SetByte(addr, byte);
     } else {
         memory_[addr] = byte;
     }

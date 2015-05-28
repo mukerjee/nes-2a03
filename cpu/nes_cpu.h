@@ -3,20 +3,37 @@
 
 #include <unistd.h>
 #include <ctime>
+#include <iostream>
+
 #include "nes_memory.h"
-#include "../nsf/nsfreader.h"
+#include "nsfreader.h"
+#include "apu.h"
+
+class NesMemory;
 
 class NesCpu {
 
 	public:
-		NesCpu();
+		NesCpu(APU *apu);
 		~NesCpu();
 
-        void nsf_init(NSFReader *reader);
+        void init_nsf(NSFReader *reader);
+        bool play_nsf(int &cycles_left);
         void cpu_loop();
+        void bank_switch(uint16_t addr, uint8_t byte);
+        int total_cycles_ = 0;
+        double play_gap();
 
 	private:
         NSFReader *reader_;
+        APU *apu_;
+
+        uint16_t instr_pc_;
+        uint8_t opcode_;
+        string instr_;
+        char context_[20];
+        int track_;
+        int num_calls_ = 1;
 
 		/*************** MEMORY ***************/
 		NesMemory *memory_;
@@ -113,6 +130,8 @@ class NesCpu {
         uint8_t get_processor_status();
 
 		/*************** ADDRESSING MODES ***************/
+        inline void implied();
+        inline void accumulator();
 		inline uint16_t immediate();
 		inline uint16_t zero_page();
 		inline uint16_t zero_page_x();
@@ -127,6 +146,7 @@ class NesCpu {
 
 		/*************** TESTING ***************/
 		void print_state();
+        void print_header(int call_number);
 };
 
 #endif  /* NES_CPU_H */

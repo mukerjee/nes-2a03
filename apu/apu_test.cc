@@ -1,38 +1,29 @@
 #include "apu.h"
-#include "apu_mixer.h"
+#include "audio.h"
 
 #include <vector>
+#include <queue>
 #include <iostream>
+#include <unistd.h>
 
-#define CLOCK_SPEED 1789773  // Hz (NTSC)
-#define SAMPLE_RATE 48000 // Hz
-
-#define STEPS_PER_SAMPLE float(CLOCK_SPEED) / SAMPLE_RATE
 
 APU g_apu;
-vector<vector<uint8_t>> g_output;
-float g_step = 0;
-
-void Compute() {
-    g_apu.CPUClock();
-    g_step++;
-    if (g_step >= floor(STEPS_PER_SAMPLE)) {
-        vector<uint8_t> *partial = new vector<uint8_t>;
-        g_apu.GetCurrent(*partial);
-        g_output.push_back(*partial);
-        g_step -= STEPS_PER_SAMPLE;
-    }
-}
 
 void Set(int addr, uint8_t b) {
-    Compute();
+    g_apu.CPUClock();
     g_apu.SetByte(addr, b);
-    Compute();
+    g_apu.CPUClock();
 }
 
 void TimedNOP(float time) {
     for (int i = 0; i < CLOCK_SPEED * time; i++)
-        Compute();
+        g_apu.CPUClock();
+}
+
+// should be silent
+void SilenceTest() {
+    Set(0x4015, 0);
+    TimedNOP(1);
 }
 
 // BROKEN does the noise channel work right?
@@ -262,6 +253,8 @@ int main(int argc, char **argv) {
     printf("start\n");    
     if(!strcmp(argv[1], "continuous"))
         ContinuousTest();
+    else if(!strcmp(argv[1], "silence"))
+        SilenceTest();
     else if(!strcmp(argv[1], "duty"))
         DutyCycleTest();
     else if(!strcmp(argv[1], "pitch"))
@@ -285,21 +278,8 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    printf("done instructions, %lu\n", g_output.size());
-    for(vector<vector<uint8_t>>::iterator i = g_output.begin(); i != g_output.end(); ++i) {
-        //cout << (int)(*i)[2] << ' ';
-    }
-
-    APUMixer apu_mixer;
-    vector<int16_t> mixed;
-    apu_mixer.Mix(g_output, 16, 48000, mixed);
-    printf("done mixer, %lu\n", mixed.size());
-    for(vector<int16_t>::const_iterator i = mixed.begin(); i != mixed.end(); ++i) {
-        //cout << *i << ' ';
-    }
-        
-    write_wave("test.wav", 16, 48000, mixed);
-    printf("done wave %lu\n", mixed.size());
+    printf("done instructions\n");
+    sleep(40);
 
     return 0;
 }
