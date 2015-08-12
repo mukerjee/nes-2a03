@@ -2,17 +2,12 @@
 opcodes = [o.split('(')[0].split()[-1] for o in
            open('opcodes').read().split('\n')[:-1]]
 
-rows = open("6502Opcodes.html").read().split("TABLE")[1].split("<TR>")[2:-1]
+rows = open("6502Opcodes.html").read().split("TABLE")[1].split("<TR>")[2:]
 
-print """#ifndef NES_CPU_OPCODE_TABLE_H_
-#define NES_CPU_OPCODE_TABLE_H_"
 
-#define NUM_OPCODES 256"
-
-namespace nes_cpu {
-    struct OpcodeProperties {
-        uint8_t (*op)(uint16_t);
-        uint16_t (*addressing_mode)();
+print """    struct OpcodeProperties {
+        uint8_t (Cpu::*op)(uint16_t);
+        uint16_t (Cpu::*am)();  // addressing mode
         uint8_t cycles;
         uint8_t penalty;  // penalty for crossing a page (cycles)
     };
@@ -47,7 +42,7 @@ for row in rows:
         ad = {'imp': 'AMImplied', 'acc': 'AMAccumulator', 'imm': 'AMImmediate',
               'zp': 'AMZeroPage', 'zpx': 'AMZeroPageX',
               'zpy': 'AMZeroPageY', 'rel': 'AMRelative',
-              'abs': 'AMAbsoulte', 'abx': 'AMAbsoluteX',
+              'abs': 'AMAbsolute', 'abx': 'AMAbsoluteX',
               'aby': 'AMAbsoluteY', 'ind': 'AMIndirect',
               'izx': 'AMIndexedIndirect',
               'izy': 'AMIndirectIndexed'}
@@ -55,15 +50,12 @@ for row in rows:
         addressing_mode = ad[addressing_mode]
 
         if opcode in opcodes:
-            output += "        {.op=&" + opcode + ", .addressing_mode = &" + \
+            output += "        {.op = &Cpu::" + opcode + ", .am = &Cpu::" + \
                       addressing_mode + ", .cycles = " + cycles + \
-                      ", .cross_page_penalty = " + penalty + "},\n"
+                      ", .penalty = " + penalty + "},\n"
         else:
             output += "        {},\n"
 
 print output[:-2]
 
-print """    }
-}
-#endif  // NES_CPU_OPCODE_TABLE_H_
-"""
+print """    };"""

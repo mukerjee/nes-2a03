@@ -1,6 +1,7 @@
 #include "apu.h"
 
-nes_apu::Apu::Apu() : pulse1_(true), pulse2_(false) {
+Apu::Apu() : pulse1_(true), pulse2_(false) {
+    hp90_buf_ = hp440_buf_ = lp14000_buf_ = 0.0;
     pulse_lookup[0] = 0.0;
     for (int i = 1; i < 31; i++)
         pulse_lookup[i] = 95.52 / (8128.0 / i + 100);
@@ -10,7 +11,7 @@ nes_apu::Apu::Apu() : pulse1_(true), pulse2_(false) {
         tnd_lookup[i] = 163.67 / (24329.0 / i + 100);
 }
 
-void nes_apu::Apu::SetByte(uint16_t addr, uint8_t b) {
+void Apu::SetByte(uint16_t addr, uint8_t b) {
     if (addr >= 0x4000 && addr <= 0x4003)
         pulse1_.SetByte(addr, b);
     if (addr >= 0x4004 && addr <= 0x4007)
@@ -33,34 +34,35 @@ void nes_apu::Apu::SetByte(uint16_t addr, uint8_t b) {
     }
 }
 
-float nes_apu::Apu::GetSample() {
+float Apu::GetSample() {
     float pul = pulse_lookup[pulse1_.GetCurrent() + pulse2_.GetCurrent()];
     float tnd = tnd_lookup[3*triangle_.GetCurrent() + 2*noise_.GetCurrent()
                            + dmc_.GetCurrent()];
     float sample = 2 * (pul + tnd) - 1;
 
+    // TODO: fix
     // filter
-    hp90_buf_ += 90 * (sample - hp90_buf_);
-    hp440_buf_ += 440 * ((sample - hp90_buf_) - hp440_buf_);
-    lp14000_buf_ += 14000 * ((sample - hp440_buf_) - lp14000_buf_);
-    return lp14000_buf_;
+    // hp90_buf_ += 90 * (sample - hp90_buf_);
+    // hp440_buf_ += 440 * ((sample - hp90_buf_) - hp440_buf_);
+    // lp14000_buf_ += 14000 * ((sample - hp440_buf_) - lp14000_buf_);
+    return sample; // lp14000_buf_;
 }
 
 
-void nes_apu::Apu::QuarterClock() {
+void Apu::QuarterClock() {
     for (int i = 0; i < 5; i++)
         channels_[i]->EnvelopeClock();
     triangle_.LinearClock();
 }
 
-void nes_apu::Apu::HalfClock() {
+void Apu::HalfClock() {
     for (int i = 0; i < 5; i++)
         channels_[i]->LengthClock();
     pulse1_.SweepClock();
     pulse2_.SweepClock();
 }
 
-void nes_apu::Apu::ClockCycles(int cycles) {
+void Apu::ClockCycles(int cycles) {
     for(int i = 0; i < cycles; i++) {
         frame_counter_++;
 
@@ -88,5 +90,6 @@ void nes_apu::Apu::ClockCycles(int cycles) {
             frame_counter_ = 0;
             break;
         }
+        RanCycles(1);
     }    
 }

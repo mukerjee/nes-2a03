@@ -1,4 +1,4 @@
-#import "audio_adapter.h"
+#include "audio_adapter.h"
 
 AudioAdapter::AudioAdapter(AudioSource *as, int clock_speed, int sample_rate) {
     audio_source_ = as;
@@ -8,7 +8,7 @@ AudioAdapter::AudioAdapter(AudioSource *as, int clock_speed, int sample_rate) {
 void AudioAdapter::ClockCycles(int cycles) {
     cycles_since_last_output_ += cycles;
     if (cycles_since_last_output_ >= cycles_per_sample_) {
-        OutputSample(audio_source_->GetSample());        
+        OutputSample(audio_source_->GetSample());
         cycles_since_last_output_ -= cycles_per_sample_;
     }
 }

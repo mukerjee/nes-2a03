@@ -1,12 +1,12 @@
 #include "triangle.h"
 
-void nes_apu::Triangle::SetEnabled(bool enabled) {
+void Triangle::SetEnabled(bool enabled) {
     enabled_ = enabled;
     if (!enabled_)
         length_ = 0;
 }
 
-void nes_apu::Triangle::SetByte(uint16_t addr, uint8_t b) {
+void Triangle::SetByte(uint16_t addr, uint8_t b) {
     switch(addr) {
     case 0x4008:  // length disable / linear control flag, linear load
         control_flag_ = b >> 7;
@@ -24,23 +24,25 @@ void nes_apu::Triangle::SetByte(uint16_t addr, uint8_t b) {
     }
 }
 
-void nes_apu::Triangle::TimerClock() {
-    if (!timer_.counter) {
-        timer_.counter = timer_.reload;
-        if (length_ && linear_.counter) {
-            sequencer_++;
-            if (sequencer_ == kSequenceLength)
-                sequencer_ = 0;
-        }
-    } else timer_.counter--;
+void Triangle::TimerClock() {
+    if (timer_.reload > 1) {
+        if (!timer_.counter) {
+            timer_.counter = timer_.reload;
+            if (length_ && linear_.counter) {
+                sequencer_++;
+                if (sequencer_ == kSequenceLength)
+                    sequencer_ = 0;
+            }
+        } else timer_.counter--;
+    }
 }
 
-void nes_apu::Triangle::LengthClock() {
+void Triangle::LengthClock() {
     if (!control_flag_ && length_)
         length_--;
 }
 
-void nes_apu::Triangle::LinearClock() {
+void Triangle::LinearClock() {
     if (linear_.counter)
         linear_.counter--;
     if (linear_reload_flag_)

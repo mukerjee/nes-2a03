@@ -1,6 +1,6 @@
 #include "audio_streamer.h"
 
-AudioStreamer::AudioStreamer(int sample_rate) {
+AudioStreamer::AudioStreamer(int sample_rate) : samples_(1000) {
     PaError err = Pa_Initialize();
     if(err != paNoError) 
         printf("PortAudio error: %s\n", Pa_GetErrorText(err));
@@ -10,12 +10,11 @@ AudioStreamer::AudioStreamer(int sample_rate) {
 
     for(int i = 0; i < numDevices; i++ ) {
         deviceInfo = Pa_GetDeviceInfo(i);
-        printf("%s", deviceInfo->name);
-        printf("%s", "\n");
+        //printf("%s\n", deviceInfo->name);
     }
 
     PaStreamParameters out;
-    out.device = 6;
+    out.device = 2; //7;
     out.channelCount = 1;
     out.sampleFormat = paFloat32;
     out.suggestedLatency = 0;
@@ -41,7 +40,7 @@ AudioStreamer::~AudioStreamer() {
 }
 
 void AudioStreamer::AddSample(float sample) {
-    samples_.push(sample);
+    samples_.enqueue(sample);
 }
 
 int AudioStreamer::PaCallback( const void *inputBuffer, void *outputBuffer,
@@ -49,12 +48,15 @@ int AudioStreamer::PaCallback( const void *inputBuffer, void *outputBuffer,
                                const PaStreamCallbackTimeInfo* timeInfo,
                                PaStreamCallbackFlags statusFlags,
                                void *userData ) {
-    std::queue<float> *samples = static_cast<std::queue<float> *>(userData);
+    moodycamel::ReaderWriterQueue<float> *samples =
+        static_cast<moodycamel::ReaderWriterQueue<float>*>(userData);
     float *out = (float*)outputBuffer;
     (void) inputBuffer; /* Prevent unused variable warning. */
 
-    for(int i = 0; i < framesPerBuffer && !samples->empty(); i++ ) {
-        *out++ = samples->front();
+    bzero(out, framesPerBuffer*sizeof(float));
+
+    for(int i = 0; i < framesPerBuffer && samples->peek() != nullptr; i++ ) {
+        *out++ = *samples->peek();
         samples->pop();
     }
     return 0;

@@ -1,4 +1,4 @@
-#import "nsfreader.h"
+#include "nsf_reader.h"
 
 NSFReader::NSFReader(char *nsffile) {
     file_name_ = nsffile;
@@ -52,7 +52,13 @@ NSFReader::NSFReader(char *nsffile) {
     fread(&ntsc_speed_, sizeof(uint16_t), 1, fp);
     fread(&bankswitch_init_, sizeof(uint8_t), 8, fp);
     fread(&pal_speed_, sizeof(uint16_t), 1, fp);
-    fread(&pal_ntsc_bits_, sizeof(uint8_t), 1, fp);
+
+    uint8_t pal_ntsc_bits;
+    fread(&pal_ntsc_bits, sizeof(uint8_t), 1, fp);
+    is_pal_ = pal_ntsc_bits & 0x01;
+    is_dual_region_ = pal_ntsc_bits & 0x02;
+
+    
     fread(&extra_sound_chips_, sizeof(uint8_t), 1, fp);
     fread(&null_expansion_, sizeof(uint8_t), 4, fp);
 
@@ -73,7 +79,7 @@ NSFReader::NSFReader(char *nsffile) {
         printf("Init addr too low\n");
     if(data_play_addr_ < data_load_addr_)
         printf("Play addr too low\n");
-    if((pal_ntsc_bits_ & 0xFC) != 0)
+    if((pal_ntsc_bits & 0xFC) != 0)
         printf("pal/ntsc unused bits set?\n");
     for(int i = 0; i < 4; i++) {
         if(null_expansion_[i])
@@ -81,15 +87,16 @@ NSFReader::NSFReader(char *nsffile) {
     }
 
     // read data
+    banks_ = (uint8_t **)calloc(MAX_NUM_BANKS, sizeof(uint8_t *));
     if (is_bank_switched()) {
-        banks_ = (uint8_t **)malloc(MAX_NUM_BANKS*sizeof(uint8_t *));
+        uint16_t padding = data_load_addr_ & 0x0FFF;
         for(int i = 0; !feof(fp); i++) {
             // 4k banks
-            banks_[i] = (uint8_t *)calloc(1, BANK_SIZE * sizeof(uint8_t));
-            fread(banks_[i], 1, BANK_SIZE, fp);
+            banks_[i] = (uint8_t *)calloc(BANK_SIZE, sizeof(uint8_t));
+            fread(&banks_[i][padding], 1, BANK_SIZE - padding, fp);
+            padding = 0;
         }
     } else {
-        banks_ = (uint8_t **)malloc(1*sizeof(uint8_t *));
         banks_[0] = (uint8_t *)calloc(1, 2<<16 * sizeof(uint8_t));
         fread(banks_[0], 1, 2<<16, fp);
     }
@@ -107,206 +114,65 @@ bool NSFReader::is_bank_switched() {
 }
 
 bool NSFReader::is_pal() {
-    return pal_ntsc_bits_ & 0x01;
-}
-
-bool NSFReader::is_dual_region() {
-    return pal_ntsc_bits_ & 0x02;
-}
-
-uint8_t NSFReader::bankswitch_init(int i) {
-    return bankswitch_init_[i];
+    return is_pal_;
 }
 
 uint8_t NSFReader::starting_song() {
     return starting_song_;
 }
 
-uint16_t NSFReader::data_load_address() {
-    return data_load_addr_;
-}
 
-uint16_t NSFReader::data_init_address() {
-    return data_init_addr_;
-}
-
-uint16_t NSFReader::data_play_address() {
-    return data_play_addr_;
-}
-
-uint16_t NSFReader::ntsc_speed() {
-    return ntsc_speed_;
-}
-
-uint16_t NSFReader::pal_speed() {
-    return pal_speed_;
-}
-
-uint8_t NSFReader::banks(int i, int addr) {
-    return banks_[i][addr];
-}
-
-char *NSFReader::file_name() {
-    return file_name_;
-}
-
-
-
-
-
-
-/*************** EXECUTION ***************/
-/**
-* @brief init nsf (music file) player
-*/
-void NesCpu::init_nsf(NSFReader *reader) {
-    reader_ = reader;
-
-    // zero memory
-    for(int i = 0; i < 0x0800; i++)
-        memory_->set_byte(i, 0);
-    for(int i = 0x6000; i < 0x8000; i++)
-        memory_->set_byte(i, 0);
-    
-    // initialize audio
-    for(int i = 0x4000; i < 0x4014; i++)
-        memory_->set_byte(i, 0);
-    memory_->set_byte(0x4010, 0x10);
-    memory_->set_byte(0x4015, 0x0F);
-
-    // set frame counter to 4-step mode
-    memory_->set_byte(0x4017, 0x40);
-
-    // initialize banks
-    if (reader_->is_bank_switched()) {
-        for(int i = 0; i < 8; i++) {
-            memory_->set_byte(0x5FF8 + i, reader_->bankswitch_init(i));
-        }
-    }
-    
-    // set starting song
-    track_ = reader_->starting_song() - 1;
-    register_a_ = track_;
-
-    // determine if pal or ntsc
-    register_x_ = reader_->is_pal();
-
-    // load program
-    if (reader_->is_bank_switched()) { // bank switching
-        uint16_t padding = reader_->data_load_address() & 0x0FFF;
-        uint16_t start_address = 0x8000 + padding;
-        for(int i = 0; i < 8; i++) {
-            for(int j = 0; j < (1 << 12); j++) {
-                memory_->set_byte(start_address + (i * 1<<12) + j,
-                                  reader_->banks(i, j));
-            }
-        }
-    } else { // no bank switching
-        for(int i = reader_->data_load_address(); i < 0xFFFF; i++) {
-            memory_->set_byte(i, reader_->banks(0, i - reader_->data_load_address()));
-        }
-    }
-    
-    interrupt_disable_ = true;
-
-    register_s_ = 0xFF;
-
-    memory_->set_byte(0x5000, 0x20); // jsr
-    memory_->set_byte(0x5001, reader_->data_init_address() & 0xFF);
-    memory_->set_byte(0x5002, reader_->data_init_address() >> 8);
-    memory_->set_byte(0x5003, 0xF2); // stp
-
-    memory_->set_byte(0x5004, 0x20); // jsr
-    memory_->set_byte(0x5005, reader_->data_play_address() & 0xFF);
-    memory_->set_byte(0x5006, reader_->data_play_address() >> 8);
-    memory_->set_byte(0x5007, 0x4C); // jmp 0x5003
-    memory_->set_byte(0x5008, 0x03);
-    memory_->set_byte(0x5009, 0x50);
-
-
-    // call init
-    #ifdef DEBUG
-    print_header(0);
-    #endif
-    register_pc_ = 0x5000;
-    for(;;) {
-        uint8_t opcode = memory_->get_byte(register_pc_++);
-        if(opcode == 0xF2) { // stp
-            #ifdef DEBUG
-            instr_pc_ = register_pc_-1;
-            opcode_ = opcode;
-            instr_ = "(HLT)";
-            implied();
-            print_state();
-            #endif
-            break;
-        }
-        int cycles = run_instruction(opcode);
-        #ifdef DEBUG
-        print_state();
-        #endif
-        for(int i = 0; i < cycles; i++) {
-            apu_->CPUClock();
-        }
-    }
-    #ifdef DEBUG
-    print_header(num_calls_);
-    #endif
-}
-
-double NesCpu::play_gap() {
+float NSFReader::PlayInterval() {
     // call play ever 1,000,000 / period times a second
-    double rate = 1000000.0;
-    if (reader_->is_pal()) {
-        rate /= reader_->pal_speed();
-    } else { // ntsc
-        //cout << reader_->ntsc_speed() << endl;
-        rate /= reader_->ntsc_speed();
-    }
+    float rate = 1000000.0;
+    rate /= is_pal_ ? pal_speed_ : ntsc_speed_;
     return 1.0 / rate;
 }
 
 /**
-* @breif nsf (music file) player
+* @brief Creates the cartridge data for the NSF.
+*
+* @param memory Buffer to write the cart into.
+* @param size Size of the output
+*
+* @return Starting address
 */
-bool NesCpu::play_nsf(int &cycles_left) {
-    //clock_t start = clock();
-    //if(num_calls_ > 1) { return; }
-    for(;;) {
-        uint8_t opcode = memory_->get_byte(register_pc_++);
-        if(opcode == 0xF2) { // stp
-            #ifdef DEBUG
-            instr_pc_ = register_pc_-1;
-            opcode_ = opcode;
-            instr_ = "(HLT)";
-            implied();
-            print_state();
-            #endif
-            break;
-        }
-        int cycles = run_instruction(opcode);
-        total_cycles_ += cycles;
-        #ifdef DEBUG
-        print_state();
-        #endif
-        // for(int i = 0; i < cycles; i++) {
-        //     apu_->CPUClock();
-        // }
-        cycles_left -= cycles;
-        if(cycles_left < 0) {
-            return false;
+uint16_t NSFReader::Cart(uint8_t *memory, size_t *size) {
+    if (is_bank_switched()) {
+        for (int i = 0; i < 8; i++) {
+            memcpy(&memory[0x8000 + i*4096], banks_[bankswitch_init_[i]], 4096);
         }
     }
-    num_calls_++;
-    //printf("finished play %d\n", num_calls_);
-    #ifdef DEBUG
-    print_header(num_calls_);
-    #endif
-    return true;
-    //printf("total cycles = %d\n", total_cycles_);
-    // #ifdef DEBUG
-    // if (num_calls_ > 1000) {
-    //     return;
-    // }
-    // #endif
+    else {
+        // TODO: the length here looks segfaulty.
+        memcpy(&memory[data_load_addr_], banks_[0], 0xFFFF - data_load_addr_);
+    }
+    
+    memory[0x5000] = 0x20; // jsr
+    memory[0x5001] = data_init_addr_ & 0xFF;
+    memory[0x5002] = data_init_addr_ >> 8;
+    memory[0x5003] = 0xF2; // stp
+
+    memory[0x5004] = 0x20; // jsr
+    memory[0x5005] = data_play_addr_ & 0xFF;
+    memory[0x5006] = data_play_addr_ >> 8;
+    memory[0x5007] = 0x4C; // jmp 0x5003
+    memory[0x5008] = 0x03;
+    memory[0x5009] = 0x50;
+
+    *size = 1 << 16;
+    return 0;
+}
+
+/**
+* @brief Copys the bank data to the input buffer.
+*
+* @param banks Buffer to store the banks.
+*/
+void NSFReader::Banks(uint8_t **banks) {
+    for(int i = 0; i < MAX_NUM_BANKS; i++) {
+        if (banks_[i]) {
+            memcpy(banks[i], banks_[i], 4096);
+        }
+    }    
 }

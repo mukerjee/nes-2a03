@@ -10,18 +10,22 @@
 #define CLOCK_SPEED 1789773  // Hz (NTSC)
 #define SAMPLE_RATE 44100 // Hz
 
-using namespace nes_apu;
-
 Apu g_apu;
+AudioAdapter g_audio_adapter(&g_apu, CLOCK_SPEED, SAMPLE_RATE);    
 
 void Set(int addr, uint8_t b) {
     g_apu.ClockCycles(1);
+    g_audio_adapter.ClockCycles(1);
     g_apu.SetByte(addr, b);
     g_apu.ClockCycles(1);
+    g_audio_adapter.ClockCycles(1);
 }
 
 void TimedNOP(float time) {
-    g_apu.ClockCycles(CLOCK_SPEED * time);
+    for(int i = 0; i < CLOCK_SPEED * time; i++) {
+        g_apu.ClockCycles(1);
+        g_audio_adapter.ClockCycles(1);
+    }
 }
 
 // should be silent
@@ -36,7 +40,10 @@ void ContinuousTest() {
     for(int j = 0; j < 4; j++) {
         Set(0x4015, 1 << j);
         TimedNOP(0.1);
-        Set(0x4000 + 4*j, 0b00111111);
+        if (j == 2)
+            Set(0x4000 + 4*j, 0b10111111);
+        else
+            Set(0x4000 + 4*j, 0b00111111);
         Set(0x4003 + 4*j, 0b00000000);
         Set(0x4002 + 4*j, 0b11001001);
         TimedNOP(1);
@@ -254,10 +261,8 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-
-    AudioAdapter audio_adapter(&g_apu, CLOCK_SPEED, SAMPLE_RATE);    
     AudioStreamer audio_streamer(SAMPLE_RATE);
-    audio_adapter.OutputSample.Connect(&audio_streamer, &AudioStreamer::AddSample);
+    g_audio_adapter.OutputSample.Connect(&audio_streamer, &AudioStreamer::AddSample);
 
     printf("start\n");    
     if(!strcmp(argv[1], "continuous"))

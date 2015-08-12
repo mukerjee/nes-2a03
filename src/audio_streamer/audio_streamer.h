@@ -2,7 +2,12 @@
 #define AUDIO_STREAMER_AUDIO_STREAMER_H_
 
 #include <queue>
+#include <strings.h>
+
 #include "portaudio.h"
+
+#include "readerwriterqueue.h"
+#include "atomicops.h"
 
 class AudioStreamer {
  public:
@@ -17,7 +22,7 @@ class AudioStreamer {
                            PaStreamCallbackFlags statusFlags,
                            void *userData );
  private:
-    std::queue<float> samples_;
+    moodycamel::ReaderWriterQueue<float> samples_;
     PaStream *stream_;
 };
 

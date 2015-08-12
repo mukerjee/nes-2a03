@@ -1,5 +1,5 @@
-#ifndef NSF_READER_H
-#define NSF_READER_H
+#ifndef NSF_NSF_READER_H_
+#define NSF_NSF_READER_H_
 
 #include <stdint.h>
 #include <stdio.h>
@@ -9,25 +9,19 @@
 #define MAGIC_STRING "NESM"
 #define MAGIC_BYTE 0x1A
 #define MAX_NUM_BANKS 256
-#define BANK_SIZE 1 << 12
+#define BANK_SIZE (1 << 12)
 
 /* Class for reading and interpreting NSF audio files */
 class NSFReader {
  public:
     NSFReader(char *nsffile);
 
-    bool is_bank_switched();
+    float PlayInterval();
+    uint16_t Cart(uint8_t *memory, size_t *size);
+    void Banks(uint8_t **banks);
+
     bool is_pal();
-    bool is_dual_region();
-    uint8_t bankswitch_init(int i);
     uint8_t starting_song();
-    uint16_t data_load_address();
-    uint16_t data_init_address();
-    uint16_t data_play_address();
-    uint16_t ntsc_speed();
-    uint16_t pal_speed();
-    uint8_t banks(int i, int addr);
-    char *file_name();
     
  private:
     char *file_name_;
@@ -43,10 +37,13 @@ class NSFReader {
     uint16_t ntsc_speed_;
     uint8_t bankswitch_init_[8];
     uint16_t pal_speed_;
-    uint8_t pal_ntsc_bits_;
+    bool is_pal_;
+    bool is_dual_region_;
     uint8_t extra_sound_chips_;
     uint8_t null_expansion_[4];
     uint8_t **banks_;
+
+    bool is_bank_switched();
 };
 
-#endif
+#endif  // NSF_NSF_READER_H_

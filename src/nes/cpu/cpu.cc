@@ -1,17 +1,46 @@
 #include "cpu.h"
 
+Cpu::Cpu(Nes *nes, int clock_speed) : nes_(nes), clock_speed_(clock_speed) {
+    #ifdef DEBUG
+    PrintHeader("test", 0, 0);
+    #endif
+};
+
 /**
 * @brief loop through all instructions, executing them in sequence.
 * Returns when it encounters a STP instruction.
+*
+* @return total number of cycles run.
 */
-void Cpu::Run() {
+uint32_t Cpu::Run() {
+    uint32_t total_cycles = 0;
     uint8_t cycles;
     for(;;) {
         uint8_t opcode = nes_->GetByte(register_pc_++);
-        if (opcode == 0xF2) break;  // stp
-        cycles = run_instruction(opcode);
+        if (opcode == 0xF2) {
+            #ifdef DEBUG
+            instr_pc_ = register_pc_-1;
+            opcode_ = opcode;
+            instr_ = "(HLT)";
+            AMImplied();
+            PrintState();
+            #endif
+            break;  // STP
+        }
+        cycles = RunInstruction(opcode);
         RanCycles(cycles);
+        total_cycles += cycles;
+        #ifdef DEBUG
+        PrintState();
+        #endif
+
     }
+
+    #ifdef DEBUG
+    PrintHeader("Test", 0, 0);
+    #endif
+
+    return total_cycles;
 }
 
 /**
@@ -25,16 +54,18 @@ void Cpu::Run() {
 uint8_t Cpu::RunInstruction(uint8_t opcode) {
     opcode_ = opcode;
 
-    #if DEBUG
+    #ifdef DEBUG
     instr_pc_ = register_pc_ - 1;
     #endif
 
-    uint16_t addr = opcode[i].addressing_mode();
-    uint8_t extra_cycles = opcode[i].op(addr);
+    int i = int(opcode);
+
+    uint16_t addr = (this->*opcodes[i].am)();
+    uint8_t extra_cycles = (this->*opcodes[i].op)(addr);
     uint8_t cycles = opcodes[i].cycles;
     bool cross_page = (addr % 0x100 == 0xFF);
     if (cross_page) 
-        cycles += opcode[i].cross_page_penalty;
+        cycles += opcodes[i].penalty;
     return cycles + extra_cycles;
 }	
 
@@ -62,7 +93,7 @@ uint8_t Cpu::ADC(uint16_t address) {
 	zero_flag_ = register_a_ == 0;
 	negative_flag_ = register_a_ & 0x80;
 
-    #if DEBUG
+    #ifdef DEBUG
     instr_ = "ADC";
     #endif
 
@@ -82,7 +113,7 @@ uint8_t Cpu::AND(uint16_t address) {
 	zero_flag_ = register_a_ == 0;
 	negative_flag_ = register_a_ & 0x80;
 
-    #if DEBUG
+    #ifdef DEBUG
     instr_ = "AND";
     #endif
 
@@ -293,7 +324,7 @@ uint8_t Cpu::BPL(uint16_t address) {
 * interrupt vector at $FFFE/F is loaded into the PC and the break flag in the
 * status set to one.
 */
-uint8_t Cpu::BRK() {
+uint8_t Cpu::BRK(uint16_t address) {
     register_pc_++; // brk increments the pc first
     PushToStack(register_pc_ >> 8);
     PushToStack(register_pc_ & 0xFF);
@@ -836,7 +867,7 @@ uint8_t Cpu::ROL(uint16_t address) {
     value <<= 1;
     value |= b_0;
 
-    if (opcode == 0x2A)
+    if (opcode_ == 0x2A)
         register_a_ = value;
     else
         nes_->SetByte(address, value);
@@ -1433,20 +1464,19 @@ uint16_t Cpu::AMIndirectIndexed() {
 
 		
 /*************** LOGGING ***************/
-#ifdef DEBUG
-void CpuLog::PrintHeader(char* file_name, int track, int call_number) {
+void Cpu::PrintHeader(std::string file_name, int track, int call_number) {
     printf("\n\n\n");
-    printf("%s\n", file_name);
+    printf("%s\n", file_name.c_str());
     printf("Track Number %d, Call number %d\n\n", track, call_number);
     printf("PC     Instr.      Context            A  X  Y  Status    SP\n");
     printf("===========================================================\n");
 }
 
-void CpuLog::PrintState() {
-    String extra_space;
+void Cpu::PrintState() {
+    std::string extra_space;
     extra_space = (instr_.length() == 3) ? " " : "";
 
-    String flags;
+    std::string flags;
     flags += negative_flag_ ? "N" : ".";
     flags += overflow_flag_ ? "V" : ".";
     flags += interrupt_disable_ ? "I" : ".";
@@ -1460,4 +1490,3 @@ void CpuLog::PrintState() {
            register_x_, register_y_,
            flags.c_str(), register_s_);
 }
-#endif

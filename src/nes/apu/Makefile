@@ -1,6 +1,6 @@
-CPPFLAGS=-I../audio_adapter/ -I../../../include/signals_and_slots/		\
--I../../audio_streamer/ -I../../../include/portaudio/ -std=c++11 -O3	\
--fomit-frame-pointer
+CPPFLAGS=-I../audio_adapter/ -I../../../include/signals_and_slots/			\
+-I../../audio_streamer/ -I../../../include/portaudio/						\
+-I../../../include/reader_writer_queue -std=c++11 -O3 -fomit-frame-pointer
 
 CXX=g++
 
