@@ -19,7 +19,7 @@ HEADERS= nsf_reader.h ../audio_streamer/audio_streamer.h ../nes/nes.h			\
 ../nes/apu/apu.h ../nes/apu/channel.h ../nes/apu/dmc.h ../nes/apu/noise.h		\
 ../nes/apu/pulse.h ../nes/apu/triangle.h ../nes/audio_adapter/audio_adapter.h	\
 ../nes/audio_adapter/audio_source.h ../nes/cpu/cpu.h ../nes/memory/memory.h		\
-../../include/portaudio.h ../../include/reader_writer_queue/atomicops.h			\
+../../include/portaudio/portaudio.h ../../include/reader_writer_queue/atomicops.h			\
 ../../include/reader_writer_queue/readerwriterqueue.h							\
 ../../include/signals_and_slots/delegate.h										\
 ../../include/signals_and_slots/gallant_signal.h
@@ -30,7 +30,7 @@ EXE=nsf_player
 
 all: $(EXE)
 
-$(EXE): $(OBJS)
+$(EXE): $(OBJS) $(HEADERS)
 	$(CC) $(LDFLAGS) -o $(EXE) $(OBJS)
 
 %.o: %.cc $(HEADERS)

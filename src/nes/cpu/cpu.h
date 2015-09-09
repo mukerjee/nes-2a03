@@ -19,7 +19,7 @@ class Cpu {
     friend class Nes;
  public:
     Cpu(Nes *nes, int clock_speed);
-    uint32_t Run();
+    int Run();
     Gallant::Signal1<int> RanCycles;
 
  private:
@@ -143,7 +143,7 @@ class Cpu {
         {},
         {.op = &Cpu::PHP, .am = &Cpu::AMImplied, .cycles = 3, .penalty = 0},
         {.op = &Cpu::ORA, .am = &Cpu::AMImmediate, .cycles = 2, .penalty = 0},
-        {.op = &Cpu::ASL, .am = &Cpu::AMImplied, .cycles = 2, .penalty = 0},
+        {.op = &Cpu::ASL, .am = &Cpu::AMAccumulator, .cycles = 2, .penalty = 0},
         {},
         {.op = &Cpu::NOP, .am = &Cpu::AMAbsolute, .cycles = 4, .penalty = 0},
         {.op = &Cpu::ORA, .am = &Cpu::AMAbsolute, .cycles = 4, .penalty = 0},
@@ -175,7 +175,7 @@ class Cpu {
         {},
         {.op = &Cpu::PLP, .am = &Cpu::AMImplied, .cycles = 4, .penalty = 0},
         {.op = &Cpu::AND, .am = &Cpu::AMImmediate, .cycles = 2, .penalty = 0},
-        {.op = &Cpu::ROL, .am = &Cpu::AMImplied, .cycles = 2, .penalty = 0},
+        {.op = &Cpu::ROL, .am = &Cpu::AMAccumulator, .cycles = 2, .penalty = 0},
         {},
         {.op = &Cpu::BIT, .am = &Cpu::AMAbsolute, .cycles = 4, .penalty = 0},
         {.op = &Cpu::AND, .am = &Cpu::AMAbsolute, .cycles = 4, .penalty = 0},
@@ -207,7 +207,7 @@ class Cpu {
         {},
         {.op = &Cpu::PHA, .am = &Cpu::AMImplied, .cycles = 3, .penalty = 0},
         {.op = &Cpu::EOR, .am = &Cpu::AMImmediate, .cycles = 2, .penalty = 0},
-        {.op = &Cpu::LSR, .am = &Cpu::AMImplied, .cycles = 2, .penalty = 0},
+        {.op = &Cpu::LSR, .am = &Cpu::AMAccumulator, .cycles = 2, .penalty = 0},
         {},
         {.op = &Cpu::JMP, .am = &Cpu::AMAbsolute, .cycles = 3, .penalty = 0},
         {.op = &Cpu::EOR, .am = &Cpu::AMAbsolute, .cycles = 4, .penalty = 0},
@@ -239,7 +239,7 @@ class Cpu {
         {},
         {.op = &Cpu::PLA, .am = &Cpu::AMImplied, .cycles = 4, .penalty = 0},
         {.op = &Cpu::ADC, .am = &Cpu::AMImmediate, .cycles = 2, .penalty = 0},
-        {.op = &Cpu::ROR, .am = &Cpu::AMImplied, .cycles = 2, .penalty = 0},
+        {.op = &Cpu::ROR, .am = &Cpu::AMAccumulator, .cycles = 2, .penalty = 0},
         {},
         {.op = &Cpu::JMP, .am = &Cpu::AMIndirect, .cycles = 5, .penalty = 0},
         {.op = &Cpu::ADC, .am = &Cpu::AMAbsolute, .cycles = 4, .penalty = 0},
@@ -392,11 +392,17 @@ class Cpu {
     };
 
     /*************** LOGGING ***************/
-    void PrintHeader(std::string file_name, int track, int call_number);
-    void PrintState();
+    void PrintHeader();
+    void SetLogging(std::string file_name, int track);
+    void SetLogChecking(std::string correct_log);
+    int PrintState();
     char context_[20];
     uint16_t instr_pc_;
     std::string instr_;
+    int call_number_ = 0;
+    std::string file_name_;
+    FILE *correct_log_ = NULL;
+    int track_ = 0;
 };
 
 #endif  // NES_CPU_CPU_H_

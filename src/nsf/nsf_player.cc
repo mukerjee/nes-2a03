@@ -8,10 +8,15 @@
 #define SAMPLE_RATE 44100  // Hz
 
 int main(int argc, char **argv) {
+    if (argc < 2) {
+        printf("%s nsf_file [starting song] [comparison log]\n", argv[0]);
+        return -1;
+    }
+    
     Nes nes(SAMPLE_RATE);
     AudioStreamer as(SAMPLE_RATE);
 
-    nes.audio_adapter_.OutputSample.Connect(&as, &AudioStreamer::AddSample);
+    nes.audio_adapter_->OutputSample.Connect(&as, &AudioStreamer::AddSample);
 
     NSFReader reader = NSFReader(argv[1]);
 
@@ -31,8 +36,15 @@ int main(int argc, char **argv) {
     }
 
     int starting_song = reader.starting_song() - 1;
-    starting_song = atoi(argv[2]);
+    if (argc > 2)
+        starting_song = atoi(argv[2]);
     nes.SetRegisters(starting_song, reader.is_pal(), 0, 0xFF, 0x5000);
+    nes.InitSoundRegisters();
+
+    nes.SetLogging(argv[1], starting_song);
+    if (argc > 3) {
+        nes.SetLogChecking(argv[3]);
+    }
 
     nes.RunPeriodic(reader.PlayInterval());
     nes.Run();

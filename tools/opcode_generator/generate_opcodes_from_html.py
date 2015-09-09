@@ -27,8 +27,8 @@ for row in rows:
             addressing_mode = params[0]
             cycles = params[1]
         else:
-            if opcode == 'asl' or opcode == 'lsr' or \
-               opcode == 'rol' or opcode == 'ror':
+            if opcode == 'ASL' or opcode == 'LSR' or \
+               opcode == 'ROL' or opcode == 'ROR':
                 addressing_mode = 'acc'
             else:
                 addressing_mode = 'imp'

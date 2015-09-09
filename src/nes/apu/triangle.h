@@ -14,8 +14,11 @@ class Triangle : public Channel {
     void EnvelopeClock() {}
     void LengthClock();
     void LinearClock();
+
     uint8_t GetCurrent() {return kSequence[sequencer_];}
 
+    uint8_t length() {return length_;}
+    
  private:
     static const uint8_t kSequenceLength = 32;
     // F E D C B A 9 8 7 6 5 4 3 2 1 0
@@ -29,7 +32,7 @@ class Triangle : public Channel {
     bool enabled_ = false;
 
     Divider timer_ = {.counter = 0, .reload = 0};
-    uint8_t length_ = 10;
+    uint8_t length_ = 0;
     Divider linear_ = {.counter = 0, .reload = 0};
     uint8_t sequencer_ = 0;
 

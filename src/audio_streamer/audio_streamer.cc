@@ -13,16 +13,9 @@ AudioStreamer::AudioStreamer(int sample_rate) : samples_(1000) {
         //printf("%s\n", deviceInfo->name);
     }
 
-    PaStreamParameters out;
-    out.device = 2; //7;
-    out.channelCount = 1;
-    out.sampleFormat = paFloat32;
-    out.suggestedLatency = 0;
-    out.hostApiSpecificStreamInfo = NULL;
-
-    err = Pa_OpenStream(&stream_, NULL, &out, sample_rate,
-                        paFramesPerBufferUnspecified,
-                        0, PaCallback, &samples_);
+    /* Open an audio I/O stream. */
+    err = Pa_OpenDefaultStream( &stream_, 0, 1, paFloat32, sample_rate,
+                                256, PaCallback, &samples_ );
 
     if(err != paNoError)
         printf("PortAudio error: %s\n", Pa_GetErrorText(err));

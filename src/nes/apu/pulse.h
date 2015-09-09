@@ -18,6 +18,8 @@ class Pulse : public Channel {
     void SweepClock();
 
     uint8_t GetCurrent();
+
+    uint8_t length() {return length_;}
     
  private:
     static const uint8_t kSequenceLength = 8;
@@ -38,7 +40,7 @@ class Pulse : public Channel {
 
     Divider timer_ = {.counter = 0, .reload = 0};
     Divider envelope_ = {.counter = 0, .reload = 0};
-    uint8_t length_ = 10;
+    uint8_t length_ = 0;
     Divider sweep_ = {.counter = 0, .reload = 0};
 
     bool constant_volume_flag_ = false;

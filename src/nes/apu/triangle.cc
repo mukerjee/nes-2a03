@@ -1,4 +1,5 @@
 #include "triangle.h"
+#include <stdio.h>
 
 void Triangle::SetEnabled(bool enabled) {
     enabled_ = enabled;
@@ -18,7 +19,7 @@ void Triangle::SetByte(uint16_t addr, uint8_t b) {
     case 0x400B:  // length counter bitload, period high
         timer_.reload = (timer_.reload & 0xFF) | (b & 7) << 8;
         if (enabled_)
-            length_ = kLengthTable[b >> 3] - 1;
+            length_ = kLengthTable[b >> 3] + 1;  // TODO: Why +1 needed?
         linear_reload_flag_ = true;
         break;
     }

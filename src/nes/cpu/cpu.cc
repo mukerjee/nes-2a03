@@ -1,10 +1,6 @@
 #include "cpu.h"
 
-Cpu::Cpu(Nes *nes, int clock_speed) : nes_(nes), clock_speed_(clock_speed) {
-    #ifdef DEBUG
-    PrintHeader("test", 0, 0);
-    #endif
-};
+Cpu::Cpu(Nes *nes, int clock_speed) : nes_(nes), clock_speed_(clock_speed) {}
 
 /**
 * @brief loop through all instructions, executing them in sequence.
@@ -12,7 +8,7 @@ Cpu::Cpu(Nes *nes, int clock_speed) : nes_(nes), clock_speed_(clock_speed) {
 *
 * @return total number of cycles run.
 */
-uint32_t Cpu::Run() {
+int Cpu::Run() {
     uint32_t total_cycles = 0;
     uint8_t cycles;
     for(;;) {
@@ -23,7 +19,8 @@ uint32_t Cpu::Run() {
             opcode_ = opcode;
             instr_ = "(HLT)";
             AMImplied();
-            PrintState();
+            if(PrintState())
+                return -1;
             #endif
             break;  // STP
         }
@@ -31,13 +28,14 @@ uint32_t Cpu::Run() {
         RanCycles(cycles);
         total_cycles += cycles;
         #ifdef DEBUG
-        PrintState();
+        if(PrintState())
+            return -1;
         #endif
 
     }
 
     #ifdef DEBUG
-    PrintHeader("Test", 0, 0);
+    PrintHeader();
     #endif
 
     return total_cycles;
@@ -144,7 +142,7 @@ uint8_t Cpu::ASL(uint16_t address) {
     else
         nes_->SetByte(address, value);        
 
-    zero_flag_ = register_a_ == 0; // not value
+    zero_flag_ = value == 0;
     negative_flag_ = value & 0x80;
 
     #ifdef DEBUG
@@ -236,11 +234,12 @@ uint8_t Cpu::BEQ(uint16_t address) {
 * @param address
 */
 uint8_t Cpu::BIT(uint16_t address) {
-    uint8_t result = register_a_ & nes_->GetByte(address);
+    uint8_t mem = nes_->GetByte(address);
+    uint8_t result = register_a_ & mem;
     
     zero_flag_ = result == 0;
-    overflow_flag_ = result & 0x40;
-    negative_flag_ = result & 0x80;
+    overflow_flag_ = mem & 0x40;
+    negative_flag_ = mem & 0x80;
 
     #ifdef DEBUG
     instr_ = "BIT";
@@ -872,7 +871,7 @@ uint8_t Cpu::ROL(uint16_t address) {
     else
         nes_->SetByte(address, value);
 
-    zero_flag_ = register_a_ == 0; // not value
+    zero_flag_ = value == 0;
     negative_flag_ = value & 0x80;
 
     #ifdef DEBUG
@@ -1301,7 +1300,7 @@ uint16_t Cpu::AMZeroPageX() {
     #ifdef DEBUG
     uint8_t addr = nes_->GetByte(register_pc_);
     uint8_t value = nes_->GetByte((addr + register_x_) % 0x100);
-    sprintf(context_, "%02X,X     [%02X=%02X]", addr,
+    sprintf(context_, "%02X,X   [00%02X=%02X]", addr,
         (addr+register_x_) % 0x100, value);
     #endif
 	return (nes_->GetByte(register_pc_++) + register_x_) % 0x100;
@@ -1319,7 +1318,7 @@ uint16_t Cpu::AMZeroPageY() {
     #ifdef DEBUG
     uint8_t addr = nes_->GetByte(register_pc_);
     uint8_t value = nes_->GetByte((addr + register_y_) % 0x100);
-    sprintf(context_, "%02X,Y     [%02X=%02X]", addr,
+    sprintf(context_, "%02X,Y   [00%02X=%02X]", addr,
         (addr+register_x_) % 0x100, value);
     #endif
 	return (nes_->GetByte(register_pc_++) + register_y_) % 0x100;
@@ -1464,15 +1463,38 @@ uint16_t Cpu::AMIndirectIndexed() {
 
 		
 /*************** LOGGING ***************/
-void Cpu::PrintHeader(std::string file_name, int track, int call_number) {
-    printf("\n\n\n");
-    printf("%s\n", file_name.c_str());
-    printf("Track Number %d, Call number %d\n\n", track, call_number);
-    printf("PC     Instr.      Context            A  X  Y  Status    SP\n");
-    printf("===========================================================\n");
+void Cpu::PrintHeader() {
+    //    if (call_number_ <= 30) {
+        printf("\n\n\n");
+        printf("%s\n", file_name_.c_str());
+        printf("Track Number %d, Call number %d\n\n", track_, call_number_);
+        printf("PC     Instr.      Context            A  X  Y  Status    SP\n");
+        printf("===========================================================\n");
+        //}
+    call_number_++;
 }
 
-void Cpu::PrintState() {
+void Cpu::SetLogging(std::string file_name, int track) {
+    file_name_ = file_name;
+    track_ = track;
+
+    #ifdef DEBUG
+    PrintHeader();
+    #endif
+}
+
+void Cpu::SetLogChecking(std::string correct_log) {
+    correct_log_ = fopen(correct_log.c_str(), "r");
+    size_t buffer_size = 1024;
+    char *throw_away = (char *)malloc(buffer_size * sizeof(char));
+    for(int i = 0; i < 8; i++) {
+        getline(&throw_away, &buffer_size, correct_log_);
+    }
+    free(throw_away);
+}
+
+int Cpu::PrintState() {
+    int invalid = 0;
     std::string extra_space;
     extra_space = (instr_.length() == 3) ? " " : "";
 
@@ -1483,10 +1505,42 @@ void Cpu::PrintState() {
     flags += zero_flag_ ? "Z" : ".";
     flags += carry_flag_ ? "C" : ".";
 
-    printf("%04X   %02X   %s%s%s  %s  %02X %02X %02X  [%s]   %02X\n",
-           instr_pc_, opcode_, extra_space.c_str(),
-           instr_.c_str(), extra_space.c_str(),
-           context_, register_a_,
-           register_x_, register_y_,
-           flags.c_str(), register_s_);
+    size_t state_buffer_size = 1024;
+    char *current_state = (char *)malloc(state_buffer_size * sizeof(char));
+    char *correct_state = (char *)malloc(state_buffer_size * sizeof(char));
+
+    sprintf(current_state, "%04X   %02X   %s%s%s  %s  %02X %02X %02X  [%s]   %02X\n",
+            instr_pc_, opcode_, extra_space.c_str(),
+            instr_.c_str(), extra_space.c_str(),
+            context_, register_a_,
+            register_x_, register_y_,
+            flags.c_str(), register_s_);
+
+    // if (call_number_ <= 30) {
+    //     printf("%s", current_state);
+    // }
+
+    if (correct_log_) {
+        ssize_t bytes = getline(&correct_state, &state_buffer_size, correct_log_);
+        if (bytes == 1) {
+            for(int i = 0; i < 8; i++) {
+                getline(&correct_state, &state_buffer_size, correct_log_);
+            }
+        }
+        if (bytes > 0) {
+            if (strcmp(current_state, correct_state)) {
+                printf("error!\n");
+                printf("current: %scorrect: %s", current_state, correct_state);
+                printf("bytes: %zu\n", bytes);
+                invalid = 1;
+            }
+        }
+        // if (bytes < 0) {
+        //     printf("error\n");
+        // }
+    }
+
+    free(current_state);
+    free(correct_state);
+    return invalid;
 }
