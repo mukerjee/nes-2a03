@@ -22,6 +22,11 @@ class NSFReader {
 
     bool is_pal();
     uint8_t starting_song();
+
+    char *name() { return name_; }
+    char *artist() { return artist_; }
+    char *copyright_holder() { return copyright_holder_; }
+    int num_songs() { return num_songs_; }
     
  private:
     char *file_name_;

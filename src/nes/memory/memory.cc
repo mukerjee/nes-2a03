@@ -3,10 +3,17 @@
 Memory::Memory() {
     memory_ = (uint8_t *)calloc(MEM_SIZE, sizeof(uint8_t));
     banks_ = (uint8_t **)calloc(256, sizeof(uint8_t *));
+    for (int i = 0; i < 256; i++) {
+        banks_[i] = (uint8_t *)malloc(4096 * sizeof(uint8_t));
+    }
 }
 
 Memory::~Memory() {
 	free(memory_);
+    for(int i = 0; i < 256; i++) {
+        free(banks_[i]);
+    }
+    free(banks_);
 }
 
 /**
@@ -31,7 +38,6 @@ void Memory::LoadCart(const uint8_t* cart, const uint16_t start_address,
 */
 void Memory::LoadBank(const uint8_t* bank, const uint8_t bank_number,
                       const size_t length) {
-    banks_[bank_number] = (uint8_t *)malloc(length * sizeof(uint8_t));
     memcpy(banks_[bank_number], bank, length);
 }
 

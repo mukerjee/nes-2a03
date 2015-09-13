@@ -12,16 +12,17 @@ Apu::Apu(Nes *nes) {
     channels_[1] = pulse2_;
     channels_[2] = triangle_;
     channels_[3] = noise_;
-    channels_[4] = dmc_;
-    
-    hp90_buf_ = hp440_buf_ = lp14000_buf_ = 0.0;
-    pulse_lookup[0] = 0.0;
-    for (int i = 1; i < 31; i++)
-        pulse_lookup[i] = 95.52 / (8128.0 / i + 100);
+    channels_[4] = dmc_;    
+}
 
-    tnd_lookup[0] = 0.0;
-    for (int i = 1; i < 203; i++)
-        tnd_lookup[i] = 163.67 / (24329.0 / i + 100);
+Apu::~Apu() {
+    free(channels_);
+    
+    delete pulse1_;
+    delete pulse2_;
+    delete triangle_;
+    delete noise_;
+    delete dmc_;
 }
 
 void Apu::SetByte(uint16_t addr, uint8_t b) {
@@ -68,45 +69,13 @@ uint8_t Apu::Get4015() {  // TODO: Frame counter / DMC status
     return result; // | 0x40;
 }
 
-float Apu::GetSample() {
-    float pul = pulse_lookup[pulse1_->GetCurrent() + pulse2_->GetCurrent()];
-    float tnd = tnd_lookup[3*triangle_->GetCurrent() + 2*noise_->GetCurrent()
-                           + dmc_->GetCurrent()];
-    float sample = 2 * (pul + tnd) - 1;
-
-
-    // filter
-    // High pass at 90Hz
-    float x = 0.987259; // e ^ (-2 * pi * (90 / 44100))
-    float prev_hp90 = hp90_buf_;
-    if (HP_90_ENABLED) {
-        hp90_buf_ = ((1 + x) / 2) * sample - ((1 + x) / 2) * prev_sample_
-            + x * hp90_buf_;
-    } else {
-        hp90_buf_ = sample;
-    }
-
-    // High pass at 440Hz
-    x = 0.939235;
-    if (HP_440_ENABLED) {
-        hp440_buf_ = ((1 + x) / 2) * hp90_buf_ - ((1 + x) / 2) * prev_hp90
-            + x * hp440_buf_;
-    } else {
-        hp440_buf_ = hp90_buf_;
-    }
-
-    // Low pass at 14400Hz
-    x = 0.136059; // e ^ (-2 * pi * (14000 / 44100))
-    if (LP_14000_ENABLED) {
-        lp14000_buf_ = (1-x) * hp440_buf_ + x * lp14000_buf_;
-    } else {
-        lp14000_buf_ = hp440_buf_;
-    }
-
-    prev_sample_ = sample;
-    return lp14000_buf_;
+void Apu::GetCurrent(uint8_t &p1, uint8_t &p2, uint8_t &t, uint8_t &n, uint8_t &d) {
+    p1 = pulse1_->GetCurrent();
+    p2 = pulse2_->GetCurrent();
+    t = triangle_->GetCurrent();
+    n = noise_->GetCurrent();
+    d = dmc_->GetCurrent();
 }
-
 
 void Apu::QuarterClock() {
     for (int i = 0; i < 5; i++)
@@ -151,6 +120,7 @@ void Apu::ClockCycles(int cycles) {
             frame_counter_ = 0;
             break;
         }
+        
         RanCycles(1);
     }    
 }

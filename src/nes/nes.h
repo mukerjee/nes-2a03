@@ -12,12 +12,14 @@
 
 class Cpu;
 class Apu;
+class AudioAdapter;
 
 class Nes {
     friend class Cpu;
     friend class DMC;
  public:
     Nes(int sample_rate);
+    ~Nes();
 
     void RunPeriodic(float interval) {periodic_ = int(interval * CLOCK_SPEED);}
     void LoadCart(const uint8_t* cart, const uint16_t start_address,
@@ -25,6 +27,7 @@ class Nes {
     void LoadBank(const uint8_t* bank, const uint8_t bank_number,
                   const size_t length) {memory_->LoadBank(bank, bank_number, length);}
     void Run();
+    void Stop();
 
     // TODO: Remove this and set them purely from 6502 assembly.
     void SetRegisters(uint8_t a, uint8_t x, uint8_t y, uint8_t s, uint16_t pc);
@@ -40,7 +43,14 @@ class Nes {
     uint8_t GetByte(const uint16_t addr);
     uint16_t GetWord(const uint16_t addr);
 
-    void CountSamples(float sample) {number_of_samples_++;}
+    void CountSamples() { number_of_samples_++; }
+
+    /* void AccumulateSamples(float sample); */
+    /* void WriteWave(const char *output_file, const std::vector<float> data); */
+    /* std::vector<float> samples_; */
+    /* bool written_wave_ = false; */
+
+    bool destroy_ = false;
     
     Cpu *cpu_;
     Memory *memory_;

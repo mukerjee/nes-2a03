@@ -19,6 +19,7 @@ class Cpu {
     friend class Nes;
  public:
     Cpu(Nes *nes, int clock_speed);
+    ~Cpu();
     int Run();
     Gallant::Signal1<int> RanCycles;
 
@@ -401,8 +402,10 @@ class Cpu {
     std::string instr_;
     int call_number_ = 0;
     std::string file_name_;
+    FILE *log_ = NULL;
     FILE *correct_log_ = NULL;
     int track_ = 0;
+    bool should_print_ = false;
 };
 
 #endif  // NES_CPU_CPU_H_

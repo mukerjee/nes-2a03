@@ -2,6 +2,13 @@
 
 Cpu::Cpu(Nes *nes, int clock_speed) : nes_(nes), clock_speed_(clock_speed) {}
 
+Cpu::~Cpu() {
+    if (log_)
+        fclose(log_);
+    if (correct_log_)
+        fclose(correct_log_);
+}
+
 /**
 * @brief loop through all instructions, executing them in sequence.
 * Returns when it encounters a STP instruction.
@@ -1463,14 +1470,18 @@ uint16_t Cpu::AMIndirectIndexed() {
 
 		
 /*************** LOGGING ***************/
+#define write_log(format, args...)                 \
+    if (should_print_) {                           \
+        printf(format, ## args);                   \
+    }                                              \
+    fprintf(log_, format, ## args);
+
 void Cpu::PrintHeader() {
-    //    if (call_number_ <= 30) {
-        printf("\n\n\n");
-        printf("%s\n", file_name_.c_str());
-        printf("Track Number %d, Call number %d\n\n", track_, call_number_);
-        printf("PC     Instr.      Context            A  X  Y  Status    SP\n");
-        printf("===========================================================\n");
-        //}
+    write_log("\n\n\n");
+    write_log("%s\n", file_name_.c_str());
+    write_log("Track Number %d, Call number %d\n\n", track_, call_number_);
+    write_log("PC     Instr.      Context            A  X  Y  Status    SP\n");
+    write_log("===========================================================\n");
     call_number_++;
 }
 
@@ -1479,6 +1490,7 @@ void Cpu::SetLogging(std::string file_name, int track) {
     track_ = track;
 
     #ifdef DEBUG
+    log_ = fopen("./test.log", "w");
     PrintHeader();
     #endif
 }
@@ -1516,9 +1528,7 @@ int Cpu::PrintState() {
             register_x_, register_y_,
             flags.c_str(), register_s_);
 
-    // if (call_number_ <= 30) {
-    //     printf("%s", current_state);
-    // }
+    write_log("%s", current_state);
 
     if (correct_log_) {
         ssize_t bytes = getline(&correct_state, &state_buffer_size, correct_log_);
@@ -1535,9 +1545,6 @@ int Cpu::PrintState() {
                 invalid = 1;
             }
         }
-        // if (bytes < 0) {
-        //     printf("error\n");
-        // }
     }
 
     free(current_state);
