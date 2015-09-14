@@ -13,6 +13,14 @@
 		464E4F2D1BA5FC7400BDEBF9 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 464E4F2C1BA5FC7400BDEBF9 /* Images.xcassets */; };
 		464E4F301BA5FC7400BDEBF9 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 464E4F2E1BA5FC7400BDEBF9 /* Main.storyboard */; };
 		464E4F3C1BA5FC7500BDEBF9 /* NSFPlayerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 464E4F3B1BA5FC7500BDEBF9 /* NSFPlayerTests.m */; };
+		464E4FC91BA65BC100BDEBF9 /* libnsf.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 464E4FBF1BA64F4700BDEBF9 /* libnsf.a */; };
+		464E4FCE1BA65F9500BDEBF9 /* libportaudio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 464E4FCB1BA65F9500BDEBF9 /* libportaudio.a */; };
+		464E4FCF1BA65F9500BDEBF9 /* license.txt in Resources */ = {isa = PBXBuildFile; fileRef = 464E4FCC1BA65F9500BDEBF9 /* license.txt */; };
+		464E4FD11BA65FC100BDEBF9 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464E4FD01BA65FC100BDEBF9 /* CoreAudio.framework */; };
+		464E4FD31BA65FCC00BDEBF9 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464E4FD21BA65FCC00BDEBF9 /* AudioToolbox.framework */; };
+		464E4FD51BA65FD600BDEBF9 /* AudioUnit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464E4FD41BA65FD600BDEBF9 /* AudioUnit.framework */; };
+		464E4FD71BA65FDE00BDEBF9 /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464E4FD61BA65FDE00BDEBF9 /* CoreServices.framework */; };
+		464E4FD91BA6610B00BDEBF9 /* libc++.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 464E4FD81BA6610B00BDEBF9 /* libc++.dylib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -24,6 +32,18 @@
 			remoteInfo = NSFPlayer;
 		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		464E4FC41BA6546200BDEBF9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		464E4F1F1BA5FC7400BDEBF9 /* NSFPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NSFPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -38,6 +58,16 @@
 		464E4F351BA5FC7500BDEBF9 /* NSFPlayerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NSFPlayerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		464E4F3A1BA5FC7500BDEBF9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		464E4F3B1BA5FC7500BDEBF9 /* NSFPlayerTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NSFPlayerTests.m; sourceTree = "<group>"; };
+		464E4FBB1BA6491B00BDEBF9 /* nsf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nsf.h; sourceTree = "<group>"; };
+		464E4FBF1BA64F4700BDEBF9 /* libnsf.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libnsf.a; sourceTree = "<group>"; };
+		464E4FCB1BA65F9500BDEBF9 /* libportaudio.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libportaudio.a; sourceTree = "<group>"; };
+		464E4FCC1BA65F9500BDEBF9 /* license.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = license.txt; sourceTree = "<group>"; };
+		464E4FCD1BA65F9500BDEBF9 /* portaudio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = portaudio.h; sourceTree = "<group>"; };
+		464E4FD01BA65FC100BDEBF9 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
+		464E4FD21BA65FCC00BDEBF9 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
+		464E4FD41BA65FD600BDEBF9 /* AudioUnit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioUnit.framework; path = System/Library/Frameworks/AudioUnit.framework; sourceTree = SDKROOT; };
+		464E4FD61BA65FDE00BDEBF9 /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
+		464E4FD81BA6610B00BDEBF9 /* libc++.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libc++.dylib"; path = "usr/lib/libc++.dylib"; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -45,6 +75,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				464E4FD91BA6610B00BDEBF9 /* libc++.dylib in Frameworks */,
+				464E4FD71BA65FDE00BDEBF9 /* CoreServices.framework in Frameworks */,
+				464E4FD51BA65FD600BDEBF9 /* AudioUnit.framework in Frameworks */,
+				464E4FD31BA65FCC00BDEBF9 /* AudioToolbox.framework in Frameworks */,
+				464E4FD11BA65FC100BDEBF9 /* CoreAudio.framework in Frameworks */,
+				464E4FC91BA65BC100BDEBF9 /* libnsf.a in Frameworks */,
+				464E4FCE1BA65F9500BDEBF9 /* libportaudio.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -61,6 +98,13 @@
 		464E4F161BA5FC7400BDEBF9 = {
 			isa = PBXGroup;
 			children = (
+				464E4FD81BA6610B00BDEBF9 /* libc++.dylib */,
+				464E4FD61BA65FDE00BDEBF9 /* CoreServices.framework */,
+				464E4FD41BA65FD600BDEBF9 /* AudioUnit.framework */,
+				464E4FD21BA65FCC00BDEBF9 /* AudioToolbox.framework */,
+				464E4FD01BA65FC100BDEBF9 /* CoreAudio.framework */,
+				464E4FBC1BA649F200BDEBF9 /* lib */,
+				464E4FA01BA6033300BDEBF9 /* include */,
 				464E4F211BA5FC7400BDEBF9 /* NSFPlayer */,
 				464E4F381BA5FC7500BDEBF9 /* NSFPlayerTests */,
 				464E4F201BA5FC7400BDEBF9 /* Products */,
@@ -116,6 +160,35 @@
 			name = "Supporting Files";
 			sourceTree = "<group>";
 		};
+		464E4FA01BA6033300BDEBF9 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				464E4FCA1BA65F9500BDEBF9 /* portaudio */,
+				464E4FBB1BA6491B00BDEBF9 /* nsf.h */,
+			);
+			name = include;
+			path = ../../include;
+			sourceTree = "<group>";
+		};
+		464E4FBC1BA649F200BDEBF9 /* lib */ = {
+			isa = PBXGroup;
+			children = (
+				464E4FBF1BA64F4700BDEBF9 /* libnsf.a */,
+			);
+			name = lib;
+			path = ../../lib;
+			sourceTree = "<group>";
+		};
+		464E4FCA1BA65F9500BDEBF9 /* portaudio */ = {
+			isa = PBXGroup;
+			children = (
+				464E4FCB1BA65F9500BDEBF9 /* libportaudio.a */,
+				464E4FCC1BA65F9500BDEBF9 /* license.txt */,
+				464E4FCD1BA65F9500BDEBF9 /* portaudio.h */,
+			);
+			path = portaudio;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -126,6 +199,7 @@
 				464E4F1B1BA5FC7400BDEBF9 /* Sources */,
 				464E4F1C1BA5FC7400BDEBF9 /* Frameworks */,
 				464E4F1D1BA5FC7400BDEBF9 /* Resources */,
+				464E4FC41BA6546200BDEBF9 /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -196,6 +270,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				464E4FCF1BA65F9500BDEBF9 /* license.txt in Resources */,
 				464E4F2D1BA5FC7400BDEBF9 /* Images.xcassets in Resources */,
 				464E4F301BA5FC7400BDEBF9 /* Main.storyboard in Resources */,
 			);
@@ -337,6 +412,11 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = NSFPlayer/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Users/dnaylor/Documents/Developer/nes-2a03-cpp-backend/include/portaudio",
+					"/Users/dnaylor/Documents/Developer/nes-2a03-cpp-backend/lib",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -348,6 +428,11 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = NSFPlayer/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Users/dnaylor/Documents/Developer/nes-2a03-cpp-backend/include/portaudio",
+					"/Users/dnaylor/Documents/Developer/nes-2a03-cpp-backend/lib",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
