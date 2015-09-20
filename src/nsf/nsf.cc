@@ -13,6 +13,9 @@ Nes *g_nes = NULL;
 AudioStreamer *g_as = NULL;
 NSFReader *g_reader = NULL;
 
+/*
+ * INTERNAL
+ */
 void *run_nes(void *np) {
     g_nes->Run();
     delete g_reader;
@@ -21,6 +24,10 @@ void *run_nes(void *np) {
     return NULL;
 }
 
+
+/*
+ * PLAYBACK CONTROLS
+ */
 void play_song(char *file, int song) {
     if (g_nes) {
         g_nes->Stop();
@@ -55,4 +62,52 @@ void play_song(char *file, int song) {
 
     g_nes->RunPeriodic(g_reader->PlayInterval());
     pthread_create(&g_run_thread, NULL, run_nes, NULL);
+}
+
+void play_pause() {
+	g_nes->audio_adapter_->enable_flip();
+}
+
+void toggle_pulse1() {
+    g_nes->audio_adapter_->pulse1_enable_flip();
+}
+
+void toggle_pulse2() {
+    g_nes->audio_adapter_->pulse2_enable_flip();
+}
+
+void toggle_triangle() {
+	g_nes->audio_adapter_->triangle_enable_flip();
+}
+
+void toggle_noise() {
+	g_nes->audio_adapter_->noise_enable_flip();
+}
+
+void toggle_dmc() {
+	g_nes->audio_adapter_->dmc_enable_flip();
+}
+
+
+/*
+ * SONG INFORMATION
+ */
+char *song_name() {
+    return g_reader->name();
+}
+
+char *song_artist() {
+    return g_reader->artist();
+}
+
+char *song_copyright_holder() {
+    return g_reader->copyright_holder();
+}
+
+
+/*
+ * NSF INFORMATION
+ */
+int nsf_num_songs() {
+    return g_reader->num_songs();
 }
