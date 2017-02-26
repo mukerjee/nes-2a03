@@ -19,7 +19,7 @@
     // Insert code here to initialize your application
     
     // TEST: temporary testing running cpp nsfplayer from objc
-    play_song("/Users/dnaylor/Desktop/NSF-06-01-2011/k/Kirby's Adventure [Hoshi no Kirby - Yume no Izumi no Monogatari] (1993)(HAL Laboratory)(Nintendo).nsf", 4);
+    play_song("../../../examples/simple.nsf", 4);
 }
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification {

@@ -65,7 +65,7 @@ void play_song(char *file, int song) {
 }
 
 void play_pause() {
-	g_nes->audio_adapter_->enable_flip();
+    g_nes->audio_adapter_->enable_flip();
 }
 
 void toggle_pulse1() {
@@ -77,15 +77,15 @@ void toggle_pulse2() {
 }
 
 void toggle_triangle() {
-	g_nes->audio_adapter_->triangle_enable_flip();
+    g_nes->audio_adapter_->triangle_enable_flip();
 }
 
 void toggle_noise() {
-	g_nes->audio_adapter_->noise_enable_flip();
+    g_nes->audio_adapter_->noise_enable_flip();
 }
 
 void toggle_dmc() {
-	g_nes->audio_adapter_->dmc_enable_flip();
+    g_nes->audio_adapter_->dmc_enable_flip();
 }
 
 
